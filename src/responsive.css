@@ -1,135 +1,100 @@
 @media (min-width: 1500px) {
-  .site-shell { max-width: 1230px; }
-  .hero { padding-top: 75px; padding-bottom: 50px; }
-  .hero h1 { font-size: 5.4rem; }
+  .site-shell { max-width: 1280px; }
+  .hero { padding-top: 56px; padding-bottom: 40px; }
 }
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .site-shell { padding: 0 28px; }
-  .hero { padding-top: 45px; }
-  .hero h1 { font-size: 3.8rem; }
-  .hero .eyebrow { font-size: .54rem; letter-spacing: 1.5px; }
-  .welcome-card { gap: 24px; padding: 28px; grid-template-columns: .9fr 1.2fr; }
-  .welcome-card h2 { font-size: 1.7rem; }
+  .hero { gap: 24px; padding-top: 40px; }
+  .welcome-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 28px; padding: 28px; }
   .input-with-button { flex-direction: column; }
-  .input-with-button .primary { padding: 12px; }
-  .statements-grid { grid-template-columns: repeat(2, 1fr); }
+  .input-with-button input { flex: none; }
+  .statements-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timings-grid { grid-template-columns: 1fr; }
-  .timing-card { padding: 17px; }
-  .timing-card small { font-size: .74rem; }
-  .contact-section { gap: 30px; }
-  .hero-art { padding-top: 25px; }
-  .statement-card { min-height: 155px; }
-  .name-badge strong { max-width: 160px; }
-  .name-edit { max-width: 60%; }
+  .timing-card { min-height: 108px; padding: 22px; }
+  .contact-section { gap: 28px; }
+  .hero-art { padding-top: 20px; }
+  .name-badge strong { max-width: 180px; }
+  .name-edit { flex-wrap: wrap; max-width: 55%; }
+  .participant-row { flex-wrap: wrap; align-items: flex-start; }
+  .delete-controls { flex-direction: row; align-items: center; flex-wrap: wrap; }
   .draw-input-row { flex-wrap: wrap; }
 }
-@media (max-width: 600px) {
-  .site-shell { padding: 0 21px; }
-  .header { height: 88px; gap: 12px; }
-  .brand { gap: 9px; }
-  .brand svg { width: 25px; height: 31px; }
-  .brand > span { font-size: 1.3rem; }
-  .brand small { font-size: .44rem; letter-spacing: 1.1px; margin-top: 5px; }
-  .season { font-size: .6rem; letter-spacing: 0; gap: 6px; }
-  .hero { grid-template-columns: 1fr; text-align: center; padding: 38px 0 20px; gap: 0; }
-  .hero .eyebrow { justify-content: center; font-size: .5rem; letter-spacing: 1.4px; }
-  .hero .eyebrow > span { width: 15px; }
-  .hero h1 { font-size: 3.6rem; letter-spacing: -1.6px; margin-bottom: 18px; }
-  .hero .lead { font-size: .94rem; margin-bottom: 12px; }
-  .hero-caption { font-size: .75rem; }
-  .hero-art { max-width: 295px; justify-self: center; padding: 10px 0 0; margin-top: -1px; }
-  .art-caption { font-size: .44rem; letter-spacing: 1.6px; margin-top: 0; }
-  .welcome-card { grid-template-columns: 1fr; padding: 25px; gap: 23px; margin: 16px 0 30px; }
-  .welcome-card .eyebrow { font-size: .54rem; }
-  .welcome-card h2 { font-size: 1.95rem; }
-  .welcome-card p { font-size: .76rem; }
-  .input-with-button { flex-direction: column; gap: 10px; }
-  .input-with-button .primary { min-height: 47px; }
-  .welcome-card small { font-size: .65rem; }
-  .how-it-works { gap: 10px; padding-bottom: 28px; flex-wrap: wrap; font-size: .6rem; }
-  .how-it-works b { margin-right: 4px; font-size: .55rem; }
-  .step-line { width: 13px; }
-  .footer { flex-direction: column; gap: 7px; align-items: center; text-align: center; font-size: .59rem; padding: 23px 0; }
-  .name-badge { gap: 6px; max-width: 47%; }
-  .avatar { display: none; }
-  .name-badge strong { max-width: 125px; font-size: .74rem; }
-  .name-badge .text-button { margin-left: 2px; font-size: .6rem; }
-  .name-badge small { font-size: .4rem; letter-spacing: .8px; }
-  .name-edit { flex-wrap: wrap; gap: 3px; max-width: 48%; }
-  .name-edit input { max-width: 100%; font-size: .72rem; padding: 5px; }
-  .name-edit button { font-size: .6rem; padding: 3px 6px; }
-  .section-divider { margin: 7px 0 30px; }
-  .question-heading { font-size: 2.1rem; line-height: 1.2; }
-  .questionnaire .eyebrow { font-size: .58rem; }
-  .question-intro { align-items: flex-start; gap: 10px; margin-bottom: 18px; }
-  .question-intro p { font-size: .76rem; }
-  .selection-count { font-size: .6rem; padding: 6px 9px; }
-  .statements-grid { gap: 9px; }
-  .statement-card { padding: 15px 12px; min-height: 170px; gap: 6px; }
-  .statement-card strong { font-size: .77rem; }
-  .statement-card small { font-size: .64rem; }
-  .statement-icon { font-size: 1.5rem; margin-bottom: 12px; }
-  .card-check { right: 12px; top: 13px; width: 17px; height: 17px; font-size: .65rem; }
-  .selection-note { font-size: .66rem; margin-top: 12px; }
-  .timing-section { margin: 35px 0; }
-  .timing-card strong { font-size: .84rem; }
-  .contact-section { grid-template-columns: 1fr; gap: 15px; padding-top: 30px; }
-  .contact-section h2 { font-size: 1.9rem; }
-  .contact-section p { font-size: .77rem; margin-bottom: 0; }
-  .contact-section small { font-size: .65rem; }
-  .submit-row { flex-direction: column-reverse; align-items: stretch; gap: 17px; }
-  .submit-row > span { text-align: center; font-size: .66rem; }
-  .review-card { padding: 25px 20px; }
-  .review-card h2 { font-size: 2.1rem; overflow-wrap: anywhere; }
-  .review-card .eyebrow { font-size: .57rem; }
-  .review-card dl > div { grid-template-columns: 1fr; gap: 8px; font-size: .8rem; }
-  .review-actions { flex-direction: column-reverse; align-items: stretch; }
-  .confirmation { font-size: .77rem; }
-  .success-page { padding: 38px 3px 45px; }
-  .success-page h1 { font-size: 2.8rem; }
-  .success-page .eyebrow { font-size: .56rem; }
-  .success-page .lead { font-size: .9rem; }
-  .elf-certificate { padding: 25px 22px; margin-left: 7px; margin-right: 7px; }
-  .elf-certificate h2 { font-size: 1.7rem; }
-  .elf-certificate p { font-size: .5rem; letter-spacing: 1.5px; }
-  .sms-note { gap: 13px; }
-  .sms-note p { font-size: .8rem; }
-  .success-page > .muted { font-size: .68rem; }
-  .admin-main { padding-top: 35px; }
-  .admin-login { margin-top: 15px; }
-  .admin-login h1 { font-size: 3rem; }
-  .admin-login > p { font-size: .8rem; }
-  .admin-title { align-items: flex-start; }
-  .admin-title h1 { font-size: 2.1rem; }
-  .admin-title .eyebrow { font-size: .52rem; }
-  .admin-stats { gap: 8px; margin-bottom: 30px; }
-  .admin-stats > div { padding: 13px 10px; }
-  .admin-stats strong { font-size: 2rem; }
-  .admin-stats .state-word { font-size: 1rem; padding-top: 12px; }
-  .admin-stats span { font-size: .6rem; }
-  .section-toolbar h2 { font-size: 1.65rem; }
-  .section-toolbar { gap: 12px; }
-  .section-toolbar .secondary { font-size: .65rem; padding: 10px; }
-  .participant-row { align-items: flex-start; gap: 10px; }
-  .participant-name { gap: 8px; }
-  .participant-name strong { font-size: .9rem; }
-  .participant-row p { font-size: .68rem; }
-  .participant-info > .muted { font-size: .7rem; }
-  .duplicate-tag { font-size: .55rem; }
-  .delete-controls { font-size: .6rem; max-width: 100px; }
-  .delete-controls .danger { font-size: .65rem; padding: 8px; }
-  .draw-panel { padding: 25px 20px; }
-  .draw-panel h2 { font-size: 1.8rem; }
-  .draw-panel > p:not(.eyebrow) { font-size: .77rem; }
+@media (max-width: 700px) {
+  .site-shell { padding: 0 20px; }
+  .header { min-height: 88px; padding: 16px 0; flex-wrap: wrap; gap: 12px; }
+  .brand { min-width: 0; max-width: 100%; gap: 10px; }
+  .brand svg { width: 25px; height: 31px; flex-shrink: 0; }
+  .brand > span { min-width: 0; font-size: 1.1rem; }
+  .brand small { letter-spacing: .6px; margin-top: 5px; }
+  .season { flex-wrap: wrap; white-space: normal; }
+  .hero { grid-template-columns: minmax(0, 1fr); text-align: center; padding: 32px 0 24px; gap: 12px; }
+  .hero .eyebrow { justify-content: center; }
+  .hero .eyebrow > span { display: none; }
+  .hero h1 { font-size: 2rem; letter-spacing: -.6px; margin-bottom: 20px; }
+  .hero .lead { margin-bottom: 16px; }
+  .hero-art { max-width: 240px; justify-self: center; padding: 0; }
+  .art-caption { margin-top: 4px; letter-spacing: .8px; }
+  .welcome-card { grid-template-columns: minmax(0, 1fr); padding: 24px; gap: 24px; margin: 12px 0 32px; }
+  .welcome-card h2 { font-size: 1.5rem; }
+  .input-with-button { gap: 12px; }
+  .how-it-works { flex-direction: column; gap: 12px; padding: 12px 0 32px; }
+  .how-it-works > span { white-space: normal; text-align: center; }
+  .step-line { width: 1px; height: 14px; }
+  .footer { flex-direction: column; gap: 12px; align-items: center; text-align: center; padding: 24px 0; }
+  .footer > span { max-width: 100%; }
+  .name-badge { width: 100%; max-width: 100%; gap: 12px; flex-wrap: wrap; }
+  .name-badge strong { max-width: 100%; }
+  .name-badge > span:nth-child(2) { min-width: 0; flex: 1; }
+  .name-badge .text-button { margin-left: 0; }
+  .name-edit { width: 100%; max-width: 100%; gap: 10px; }
+  .name-edit input { flex: 1 1 160px; max-width: 100%; padding: 12px; }
+  .name-edit button { padding: 10px 12px; }
+  .section-divider { margin: 8px 0 32px; }
+  .question-heading { font-size: 1.6rem; line-height: 1.3; }
+  .question-intro { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
+  .statements-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .statement-card { min-height: 0; padding: 24px; gap: 10px; }
+  .statement-icon { margin-bottom: 8px; }
+  .selection-note { margin-top: 18px; }
+  .timing-section { margin: 40px 0; }
+  .timing-card { padding: 20px; gap: 14px; }
+  .timing-icon { flex-shrink: 0; }
+  .contact-section { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-top: 32px; }
+  .contact-section h2 { font-size: 1.5rem; }
+  .contact-section p { margin-bottom: 0; }
+  .submit-row { flex-direction: column-reverse; align-items: stretch; gap: 20px; }
+  .submit-row > span { text-align: center; }
+  .review-card { padding: 28px 22px; }
+  .review-card h2 { font-size: 1.6rem; overflow-wrap: anywhere; }
+  .review-card dl > div { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .review-actions { flex-direction: column-reverse; align-items: stretch; gap: 16px; }
+  .success-page { padding: 36px 0 44px; }
+  .success-page h1 { font-size: 1.9rem; }
+  .elf-certificate { padding: 28px 20px; margin-left: 7px; margin-right: 7px; }
+  .elf-certificate h2 { font-size: 1.5rem; }
+  .sms-note { gap: 16px; align-items: flex-start; }
+  .sms-note > span { flex-shrink: 0; }
+  .admin-main { padding-top: 32px; }
+  .admin-login { margin-top: 16px; }
+  .admin-login h1 { font-size: 2rem; }
+  .admin-title { flex-wrap: wrap; align-items: flex-start; margin-bottom: 24px; }
+  .admin-title h1 { font-size: 1.9rem; margin-bottom: 0; }
+  .admin-stats { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 36px; }
+  .admin-stats > div { padding: 22px; }
+  .admin-stats .state-word { padding-top: 0; }
+  .section-toolbar { align-items: flex-start; gap: 16px; }
+  .section-toolbar h2 { font-size: 1.5rem; }
+  .participant-row { gap: 16px; }
+  .participant-name { gap: 10px; }
+  .delete-controls { gap: 12px; }
+  .draw-panel { padding: 28px 22px; }
+  .draw-panel h2 { font-size: 1.5rem; }
   .draw-input-row { flex-direction: column; }
   .draw-input-row input { max-width: 100%; }
-  .draw-input-row .primary { white-space: normal; font-size: .8rem; }
-  .sms-grid { grid-template-columns: 1fr; }
-  .sms-section .section-toolbar { align-items: flex-start; }
-  .sms-section .section-toolbar > .secondary { white-space: normal; max-width: 130px; }
-  .sms-card { padding: 22px 18px; }
-  .notice { font-size: .72rem; }
-  .admin-shell .header .season { white-space: normal; text-align: right; max-width: 105px; font-size: .5rem; }
+  .sms-grid { grid-template-columns: minmax(0, 1fr); }
+  .sms-section .section-toolbar { flex-direction: column; }
+  .sms-card { padding: 24px 20px; }
+  .admin-shell .header .season { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *:before, *:after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
