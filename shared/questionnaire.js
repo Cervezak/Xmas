@@ -33,6 +33,7 @@ export function normalizePhone(phone) {
 
 export function validateSubmission(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Formulář nemá správný formát.');
+  if (!Number.isInteger(input.year) || input.year < 2020 || input.year > 2100) throw new Error('Obnov stránku a načti aktuální ročník.');
   const name = typeof input.name === 'string' ? input.name.replace(/\s+/g, ' ').trim() : '';
   if (name.length < 2 || name.length > 60 || /[\p{Cc}\p{Cf}<>]/u.test(name)) throw new Error('Jméno musí mít 2 až 60 znaků.');
   const phone = normalizePhone(typeof input.phone === 'string' ? input.phone : '');
@@ -42,7 +43,7 @@ export function validateSubmission(input) {
   if (input.confirmed !== true) throw new Error('Potvrď prosím definitivní odeslání.');
   if (typeof input.idempotencyKey !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.idempotencyKey)) throw new Error('Obnov stránku a zkus odeslání znovu.');
   if (input.website) throw new Error('Formulář se nepodařilo ověřit.');
-  return { name, phone, statements: input.statements, timing: input.timing, idempotencyKey: input.idempotencyKey, nameKey: normalizeName(name), elfTitle: elfTitle(input.statements, input.timing) };
+  return { name, phone, statements: input.statements, timing: input.timing, idempotencyKey: input.idempotencyKey, nameKey: normalizeName(name), elfTitle: elfTitle(input.statements, input.timing), year: input.year };
 }
 
 export function smsText(giver, receiver) {

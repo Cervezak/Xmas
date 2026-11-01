@@ -99,3 +99,12 @@
 @media (prefers-reduced-motion: reduce) {
   *, *:before, *:after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+@media (max-width: 700px) {
+  .season-controls { padding: 24px 20px; }
+  .season-controls-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .season-input-row { flex-direction: column; }
+  .season-input-row input, .season-input-row select { flex: none; }
+  .participant-info { flex-basis: 100%; }
+  .history-table th, .history-table td { padding: 12px; }
+  .lock-draw { padding: 20px; }
+}

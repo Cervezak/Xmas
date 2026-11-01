@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { STATEMENTS, TIMINGS, validateSubmission } from '../shared/questionnaire.js';
-import { api, readSession, saveSession, Header, Footer } from './common.jsx';
+import { api, Header, Footer } from './common.jsx';
+import { readSeasonSession, saveSeasonSession } from '../shared/season-storage.js';
 import Illustration from './Illustration.jsx';
 
 function NameBadge({ name, onSave, locked }) {
@@ -11,9 +12,45 @@ function NameBadge({ name, onSave, locked }) {
 }
 
 export default function ParticipantApp() {
-  const [draft] = useState(() => readSession('santa-draft'));
+  const [event, setEvent] = useState(null);
+  const [eventError, setEventError] = useState('');
+  const [refreshAttempt, setRefreshAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    let sequence = 0;
+    const load = async () => {
+      const requestId = ++sequence;
+      try {
+        const result = await api('event');
+        if (!Number.isInteger(result.year) || typeof result.registrationOpen !== 'boolean') throw new Error('Nepodařilo se načíst ročník.');
+        if (active && requestId === sequence) {
+          setEvent((previous) => previous?.year === result.year && previous.registrationOpen === result.registrationOpen ? previous : result);
+          setEventError('');
+        }
+      } catch (failure) { if (active && requestId === sequence) setEventError(failure.message); }
+    };
+    const refreshVisible = () => { if (document.visibilityState === 'visible') load(); };
+    load();
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    const timer = window.setInterval(refreshVisible, 60000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
+  }, [refreshAttempt]);
+  const refresh = () => setRefreshAttempt((attempt) => attempt + 1);
+  if (!event) return <div className="site-shell"><Header /><main className="status-page" aria-live="polite"><h1>{eventError ? 'Dílna se ještě neozvala.' : 'Otevíráme Santovu dílnu…'}</h1>{eventError && <><p className="error" role="alert">{eventError}</p><button className="secondary" onClick={refresh}>Zkusit znovu</button></>}</main><Footer /></div>;
+  return <SeasonParticipantApp key={event.year} event={event} eventError={eventError} onRefresh={refresh} />;
+}
+
+export function SeasonParticipantApp({ event, eventError, onRefresh }) {
+  const year = event.year;
+  const [draft] = useState(() => readSeasonSession('draft', year));
   const [receipt, setReceipt] = useState(() => {
-    const saved = readSession('santa-receipt');
+    const saved = readSeasonSession('receipt', year);
     return typeof saved?.name === 'string' && typeof saved?.elfTitle === 'string' ? saved : null;
   });
   const [name, setName] = useState(typeof draft?.name === 'string' ? draft.name : '');
@@ -33,7 +70,7 @@ export default function ParticipantApp() {
   const resultRef = useRef(null);
   const previousStepRef = useRef({ named, reviewing });
 
-  useEffect(() => { if (!receipt) saveSession('santa-draft', { name, named, statements, timing, idempotencyKey }); }, [name, named, statements, timing, idempotencyKey, receipt]);
+  useEffect(() => { if (!receipt) saveSeasonSession('draft', year, { name, named, statements, timing, idempotencyKey }); }, [name, named, statements, timing, idempotencyKey, receipt, year]);
   useEffect(() => { if (reviewing) reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [reviewing]);
   useEffect(() => { if (receipt) resultRef.current?.focus(); }, [receipt]);
   useEffect(() => {
@@ -64,7 +101,7 @@ export default function ParticipantApp() {
   };
   const prepareSubmission = (event) => {
     event.preventDefault(); setError('');
-    try { validateSubmission({ name, phone, statements, timing, confirmed: true, idempotencyKey }); setReviewing(true); }
+    try { validateSubmission({ year, name, phone, statements, timing, confirmed: true, idempotencyKey }); setReviewing(true); }
     catch (failure) { setError(failure.message); }
   };
   const submit = async (event) => {
@@ -72,22 +109,23 @@ export default function ParticipantApp() {
     const website = new FormData(event.currentTarget).get('website');
     setBusy(true); setError('');
     try {
-      const result = await api('submit', { name, phone, statements, timing, confirmed, idempotencyKey, website });
-      saveSession('santa-receipt', result); saveSession('santa-draft', null);
+      const result = await api('submit', { year, name, phone, statements, timing, confirmed, idempotencyKey, website });
+      saveSeasonSession('receipt', year, result); saveSeasonSession('draft', year, null);
       setReceipt(result); setPhone('');
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   };
 
-  return <div className="site-shell"><Header>{(named || receipt) && <NameBadge name={receipt?.name || name} onSave={updateName} locked={Boolean(receipt) || busy} />}</Header>
+  return <div className="site-shell"><Header year={year}>{(named || receipt) && <NameBadge name={receipt?.name || name} onSave={updateName} locked={Boolean(receipt) || busy || !event.registrationOpen} />}</Header>
+    {eventError && <p className="notice" role="status">Aktuální stav ročníku se nepodařilo ověřit. {eventError}</p>}
     {receipt ? <main className="success-page" ref={resultRef} tabIndex={-1}>
       <div className="success-seal" aria-hidden="true">✧</div><p className="eyebrow">RAZÍTKO ZE SEVERNÍHO PÓLU</p>
-      <h1>Jsi v tom, <em>{receipt.name}!</em></h1><p className="lead">Přihláška bezpečně přistála v Santově dílně.</p>
+      <h1>Jsi v tom, <em>{receipt.name}!</em></h1><p className="lead">Přihláška pro Vánoce {year} bezpečně přistála v Santově dílně.</p>
       <div className="elf-certificate"><span className="tiny-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span><p>ODE DNEŠKA NOSÍŠ ČESTNÝ ELFÍ TITUL</p><h2>{receipt.elfTitle}</h2><span className="certificate-rule" /><small>Uděleno za mimořádné zásluhy o vánoční atmosféru.</small></div>
       <div className="sms-note"><span aria-hidden="true">✉</span><p><strong>A koho letos potěšíš?</strong><br />To zůstává ještě chvilku tajemstvím. Po losování ti přijde SMS.</p></div>
       <p className="muted">Odeslání je definitivní. Potřebuješ něco opravit? Ozvi se organizátorovi.</p>
-      <button className="text-button" onClick={() => { saveSession('santa-receipt', null); saveSession('santa-draft', null); setReceipt(null); setName(''); setNamed(false); setStatements([]); setTiming(''); setReviewing(false); setConfirmed(false); setIdempotencyKey(crypto.randomUUID()); }}>Vyplnit za dalšího člověka <span aria-hidden="true">→</span></button>
-    </main> : <main>
+      <button className="text-button" onClick={() => { saveSeasonSession('receipt', year, null); saveSeasonSession('draft', year, null); setReceipt(null); setName(''); setNamed(false); setStatements([]); setTiming(''); setReviewing(false); setConfirmed(false); setIdempotencyKey(crypto.randomUUID()); }}>Vyplnit za dalšího člověka <span aria-hidden="true">→</span></button>
+    </main> : !event.registrationOpen ? <main className="status-page"><p className="eyebrow">VÁNOCE {year}</p><h1>Santa už rozdal úkoly.</h1><p className="lead">Přihlášky pro tento ročník jsou uzavřené. Pokud už jsi přihlášený/á, informace přijde od organizátora.</p><button className="secondary" onClick={onRefresh}>Znovu načíst stav</button></main> : <main>
       <section className="hero"><div className="hero-copy"><p className="eyebrow"><span /> TAJNÉ NADĚLOVÁNÍ, OPRAVDOVÁ RADOST</p><h1>Malé tajemství.<br />Velká <em>radost.</em></h1><p className="lead">Někdo chystá překvapení pro tebe.<br />A ty zase pro někoho dalšího.</p><p className="hero-caption">Pár odpovědí, trocha vánočního kouzla.<br />Zbytek nech na Santovi.</p></div><div className="hero-art"><Illustration /><span className="art-caption">PŠŠŠT. TADY SE CHYSTAJÍ PŘEKVAPENÍ.</span></div></section>
       {!named ? <section className="welcome-card"><div><p className="eyebrow">01 / PRVNÍ ZASTÁVKA</p><h2>Jak ti Santa říká?</h2><p>Ať víme, komu rezervovat místo na saních.</p></div><form onSubmit={(event) => { event.preventDefault(); if (name.trim().length >= 2) { setName(name.trim()); setNamed(true); } }}><label htmlFor="santa-name">Tvoje jméno nebo přezdívka</label><div className="input-with-button"><input ref={nameInputRef} id="santa-name" name="name" placeholder="Třeba David" autoComplete="name" required minLength={2} maxLength={60} value={name} onChange={(event) => setName(event.target.value)} /><button className="primary" type="submit">To jsem já <span aria-hidden="true">→</span></button></div><small>Ideálně tak, aby tě ostatní poznali.</small></form></section> : <>
         <div className="section-divider"><span aria-hidden="true">✧</span></div>

@@ -1,103 +1,143 @@
 # Santova dílna · Secret Santa
 
-Česká responzivní SPA v Reactu a Vite. Jméno → 1–3 vánoční výroky → načasování nákupu dárků → telefon → kontrola → definitivní odeslání → osobní elfí titul. Jméno je do odeslání upravitelné v záhlaví. Informaci o obdarovaném dostane účastník později SMS od organizátora.
+Česká responzivní React/Vite SPA s ročníky, verzemi losování a neveřejnou administrací. Veřejný formulář vždy patří jedinému aktivnímu roku. Výsledky jsou dostupné pouze správci, SMS se posílají ručně.
 
-## Architektura
+## Aktualizace existující instalace z října 2026
 
-- **React + Vite** pro veřejnou stránku a administraci `/admin`.
-- **Vercel Node.js Function** `api/santa.js` přijímá JSON, validuje údaje a zajišťuje přístup do databáze.
-- **Supabase PostgreSQL** uchovává přihlášky, jediné losování a sdílené limity požadavků.
-- Render ani samostatný trvale běžící backend nejsou potřeba. SMS se odesílají ručně; žádná SMS brána se nevolá.
+**Původní migraci znovu nespouštěj.** Všechny existující formuláře zůstanou v roce 2026. Dosavadní los se zachová jako verze 1, včetně původního času a všech přiřazení. Migrace sama neprovádí přelosování.
 
-## 1. Lokální spuštění
+1. Před změnou si stáhni export současných účastníků a přiřazení ze Supabase.
+2. V Supabase SQL Editoru spusť celý soubor `supabase/migrations/202611010001_seasons_and_versions.sql`. Je to jednorázová transakční migrace.
+3. Potom spusť soukromý soubor `supabase/private/2025-history.sql`, případně stažený `2025-historie-soukrome.sql`. Obsahuje deset ručně dodaných dvojic z roku 2025. Je mimo Git díky `.gitignore`, aby se historické výsledky nezveřejnily se zdrojovým kódem.
+4. Nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
+5. V `/admin` vyber rok 2026. U každé přihlášky zvol skutečnou osobu z historie a klikni na **Potvrdit totožnost**. Při účasti nového člověka zvol **Nová osoba**. Shoda jména je jen nápověda, nic se automaticky nehádá.
+6. Dosavadní los uvidíš jako **2026, verze 1**. Jestli potřebuješ nový výsledek a **SMS ještě neodešly**, vytvoř další verzi. Výsledek před rozesláním definitivně uzamkni.
 
-Potřebuješ Node.js **22.12 nebo novější** a npm. Ve složce projektu:
+Pokud už byly SMS rozeslané, nepotvrzuj prohlášení, že odeslané nejsou. Stávající výsledek uzamkni; aplikace neumí odvolat zprávy nebo informovat příjemce o změně.
 
-```sh
+Soukromý import 2025 nemění letošní výsledek, aktivní ročník ani registrace. Datum skutečného losování v roce 2025 nebylo dodané, proto zůstává neznámé. Historie přesně zachovává i reciproční dvojice a více kruhů, které platily tehdy. Nová pravidla se uplatňují pouze na nově generované losy.
+
+Neúplná či nenačtená historie 2025 zablokuje nové losování 2026. Import je jednorázový; při druhém spuštění se zastaví a nic nepřepíše. Pokud po neúspěšném běhu SQL Editor uvádí otevřenou chybnou transakci, proveď `ROLLBACK` před dalším pokusem.
+
+## Nová instalace
+
+Potřebuješ Node.js **22.12 nebo novější**, npm, Vercel a Supabase. Samostatný Render backend není potřeba.
+
+~~~sh
 npm ci
-```
+~~~
 
-Zkopíruj `.env.example` do `.env`, doplň čtyři skutečné hodnoty podle další kapitoly a spusť:
+Zkopíruj `.env.example` do `.env` a doplň:
 
-```sh
-npm run dev
-```
+| Proměnná | Význam |
+|---|---|
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Serverový Supabase secret key nebo legacy service_role klíč |
+| `ADMIN_PASSWORD` | Náhodné administrátorské heslo, nejméně 24 znaků |
+| `RATE_LIMIT_SALT` | Jiné náhodné tajemství, nejméně 32 znaků |
 
-Otevři adresu vypsanou terminálem, obvykle `http://127.0.0.1:5173`. Na Windows lze použít také **START.bat** dvojklikem. Místní vývojový server obsluhuje stejnou API funkci jako Vercel. Po úpravě `.env` server restartuj.
+Dvě různá náhodná tajemství lze vytvořit tímto příkazem, pokaždé samostatně:
 
-Bez nastavené databáze funguje vzhled a vyplňování; při odeslání nebo přihlášení do administrace se zobrazí zpráva o nepřipojené dílně. Aplikace v takovém případě nic neuloží ani nepředstírá úspěch. `npm run preview` slouží pouze ke kontrole statického buildu a neobsluhuje API.
-
-## 2. Supabase
-
-1. Vytvoř nový samostatný Supabase projekt pro tuto akci.
-2. V **SQL Editoru** spusť celý soubor `supabase/migrations/202610260001_santa.sql`. Migrace vytvoří tabulky a funkce v jedné transakci. Je určena pro první spuštění, ne pro opakované přepisování existujících dat.
-3. Z nastavení projektu zkopíruj **Project URL** do `SUPABASE_URL`.
-4. Ze sekce **API Keys** vezmi serverový **secret key** nebo legacy **service_role** klíč a nastav jej jako `SUPABASE_SERVICE_ROLE_KEY`. Nepoužívej publishable/anon klíč.
-5. Vygeneruj dvě různá náhodná tajemství:
-
-```sh
+~~~sh
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-```
+~~~
 
-První dej do `ADMIN_PASSWORD` (alespoň 24 znaků), druhé do `RATE_LIMIT_SALT` (alespoň 32 znaků). Hodnoty z `.env.example` jsou pouze zástupné; nahraď je vlastními. Všechna čtyři nastavení patří pouze serveru. **Nepoužívej předponu `VITE_`** a nevkládej tajemství do Reactu. `.env` je v `.gitignore`.
+V Supabase SQL Editoru spusť v tomto pořadí:
 
-Tabulky mají zapnuté RLS a odebraná oprávnění rolím `anon`, `authenticated` i `PUBLIC`. Žádné veřejné politiky je neotevírají. Také všechny RPC funkce smí spouštět pouze `service_role`; jsou `SECURITY INVOKER` s prázdným `search_path`. Prohlížeč komunikuje pouze se stejnou doménou přes `/api/santa`, nikoli přímo se Supabase. Supabase Auth není pro tento malý soukromý projekt potřeba.
+1. `supabase/migrations/202610260001_santa.sql`
+2. `supabase/migrations/202611010001_seasons_and_versions.sql`
+3. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
 
-## 3. Vercel – až po schválení nasazení
+První dvě migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
 
-Projekt je připravený k nasazení, ale samotná implementace nic nezveřejňuje.
+~~~sh
+npm run dev
+~~~
 
-1. Nahraj repozitář na svůj Git hosting a importuj jej do Vercelu, případně použij Vercel CLI až po rozhodnutí nasadit.
-2. Vyber framework **Vite**, kořenovou složku tohoto projektu, build příkaz `npm run build`, output `dist` a runtime Node.js **22.x nebo novější**.
-3. Do **Environment Variables** nastav `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD` a `RATE_LIMIT_SALT`. Nastav je pro cílové prostředí ještě před deploymentem.
-4. Preview připojuj k oddělenému testovacímu Supabase projektu. Pokud proměnné pro Preview vynecháš, bude tam dostupný pouze formulář bez ukládání. Preview se skutečnými produkčními klíči by zapisovalo do stejné databáze jako ostrá akce.
-5. Po schválení proveď deployment. `vercel.json` nastavuje SPA cestu `/admin` a bezpečnostní hlavičky. `/api/santa` zůstává serverovou funkcí, nepřepisuje se na HTML.
-6. Na testovacím prostředí projdi přihlášku a administraci. Na produkci používej jen skutečné účastníky a losuj až po jejich kontrole.
+Na Windows můžeš použít **START.bat**. `npm run preview` kontroluje pouze statický build, neobsluhuje API. Po změně `.env` vývojový server restartuj.
 
-Přístup do administrace chrání silné `ADMIN_PASSWORD`. Heslo se posílá v autorizační hlavičce přes HTTPS a zůstává jen v paměti otevřené stránky; není uložené do browser storage ani cookies. Obnovení stránky vyžaduje nové přihlášení. Změna hesla ve Vercelu vyžaduje nový deployment.
+Bez správné konfigurace nebo migrace se veřejná stránka nepokusí hádat rok a nepředstírá úspěšné uložení. Zobrazí informaci, že se nepodařilo načíst dílnu.
 
-## 4. Administrace a losování
+## Ročníky a veřejný formulář
 
-1. Otevři `/admin` a zadej nastavené heslo.
-2. Projdi účastníky, telefony a odpovědi. **Prověřit duplicitu** znamená stejné normalizované jméno (bez diakritiky, bez rozlišení velikosti písmen a nadbytečných mezer) nebo stejný normalizovaný telefon. Sdílené číslo může být legitimní. Aplikace nevybírá automaticky vítězný záznam.
-3. Přebytečný záznam odeber přes **Odebrat → Potvrdit odebrání**. Jde o trvalé odstranění; správný záznam si nejprve ověř.
-4. Obnov seznam a po kontrole všech přihlášek zaškrtni potvrzení, napiš **LOSOVAT** a spusť losování. Minimum jsou **3 účastníci**: u dvou lidí nelze zabránit reciproční dvojici.
-5. Na serveru proběhne Fisher–Yates promíchání s `crypto.randomInt`. Každý v pořadí obdaruje následujícího a poslední prvního. Vzniká jeden náhodný kruh přes všechny účastníky, každý přesně jednou dává i dostává, nikdo sobě a žádné vzájemné dvojice.
-6. Databáze ověří celý aktuální seznam a uloží všechna přiřazení i uzavření akce atomicky. Změní-li se seznam od kontroly, losování skončí chybou a musíš jej znovu zkontrolovat. Zápisy, mazání a losování sdílejí transakční zámek jednoho řádku akce. Souběžná losování nemohou přepsat výsledek.
-7. Po losování se uzavřou nové přihlášky, mazání i další losování. Tlačítko na přelosování záměrně neexistuje. Další ročník spusť v novém Supabase projektu nebo po samostatně připravené migraci; nemanipuluj s rozeslaným losováním.
-8. Otevři **Zobrazit tajné zprávy**. U každého odesílatele uvidíš jeho číslo a samostatný text se jménem obdarovaného a jeho vánočními výroky. **Kopírovat text** přenese jednu zprávu do schránky. **Otevřít SMS** na podporovaném telefonu jen otevře aplikaci zpráv; samotné odeslání provádíš ručně. Obsah schránky může synchronizovat tvůj operační systém. Aplikace neeviduje doručení ani odeslání.
+- V administraci vyber rok v **Prohlížet ročník**. Samotné prohlížení historie veřejný web nemění.
+- **Založit nový ročník** vytvoří prázdný seznam a připraví otevřené registrace. Nepřenáší staré účastníky ani losování.
+- Pro skutečné přepnutí webu napiš například **AKTIVOVAT 2027** a potvrď aktivaci.
+- Veřejný web pak načítá nový rok ze serveru. Staré otevřené panely jej znovu ověří při návratu na stránku nebo nejpozději přibližně za minutu, pokud je panel viditelný.
+- Požadavek rozpracovaný pro jiný rok se nepřesune automaticky do nového roku. Server jej odmítne. Opakování již úspěšně uloženého stejného požadavku vrátí původní potvrzení bez nového záznamu.
+- Potvrzení a rozepsané volby v prohlížeči jsou oddělené podle roku. Starý formát z roku 2026 se čte pouze pro rok 2026; do 2027 nezasáhne. Telefon zůstává jen v paměti otevřené stránky.
+- Uzavřený ročník zobrazuje zprávu **Santa už rozdal úkoly**, ne formulář pro nové přihlášky. Vlastní dříve uložené potvrzení lze stále vidět.
+- Starší ročník lze znovu vybrat k prohlížení. Samotné vynulování času losování není podporovaný způsob založení nové akce.
 
-Výsledky nejsou dostupné přes veřejné API. Veřejné odeslání vrací pouze vlastní jméno a elfí titul. Administrátorské odpovědi mají `Cache-Control: no-store`; tajné zprávy jsou v rozhraní nejdřív schované a vracejí se až po autentizaci správce.
+## Totožnost účastníků
 
-## Opakované odeslání a limity
+Přihláška a osoba jsou dvě různé věci. Přezdívky se mohou změnit a více lidí může sdílet telefon.
 
-- Jedna přihláška má náhodný idempotentní klíč. Opakování stejného požadavku po síťové chybě nevyrobí druhý záznam a funguje i po uzavření losování. Změna již uloženého požadavku pod stejným klíčem se odmítne.
-- Nová samostatná přihláška stejného člověka se uloží: duplicity řeší organizátor. Neprobíhá ověření vlastnictví telefonního čísla.
-- Rozpracované jméno, volby a klíč jsou v `sessionStorage` aktuálního panelu; telefon se do něj neukládá. Po úspěchu zůstává pouze vlastní jméno a titul. Browser potvrzení není důkazem zápisu; rozhodující je seznam v administraci.
-- Sdílený databázový limit je 20 platných pokusů o přihlášku, 10 neúspěšných přihlášení správce a 300 autorizovaných operací správce na IP a 15minutové okno. Úspěšné ověření hesla nepodléhá vyčerpanému limitu chybných hesel. U společné Wi-Fi se veřejný limit sdílí.
-- Na Vercelu se používá systémová hlavička `x-vercel-forwarded-for`; lokálně adresa spojení. V databázi je jen HMAC IP adresy s tajnou solí, záznamy starší než den se čistí při dalších požadavcích. Formulář má také skryté pole proti jednoduchým botům. Pokud web začne dostávat spam, lze později přidat CAPTCHA nebo vstupní kód.
-- Tato verze je jedna akce pro menší skupinu, s jedním sdíleným administrátorským heslem. Jména, telefony a odpovědi uchovává organizátor v Supabase; po skončení akce je odstraň podle vlastní potřebné doby uchování.
+Každá přihláška dostane ročník a vlastní ID. Správce ji před novým losováním přiřadí ke stabilní osobě z tabulky `santa_people`. Shodné normalizované jméno je pouze nápověda. Připojení se musí potvrdit.
 
-## Úpravy dotazníku
+Jedna osoba nemůže mít dvě potvrzené přihlášky ve stejném roce. Nejdřív odstraň skutečnou duplicitu. Pokud jde opravdu o různé lidi se stejným jménem, založ pro ně různé osoby. Vedle jména je pro rozlišení krátká část jejich ID.
 
-Výroky, texty načasování a elfí tituly jsou v `shared/questionnaire.js`. Původní konverzace neobsahovala čitelné definitivní znění výroků, takže je připravena upravitelná sada devíti textů. Titul vzniká z prvního zvoleného výroku a načasování nákupu. Změna textu při zachování ID nevyžaduje zásah do databáze. Přidání/změna ID vyžaduje odpovídající novou SQL migraci pro omezení tabulky, ne opakované spuštění počátečního schématu.
+Totožnost lze upravovat před prvním novým losem nebo doplnit u původního losu zachovaného z říjnové verze. Po novém generovaném losování je přiřazení osob uzamčené. Stejně tak se nesmí měnit ročník, na který už navazuje pozdější losování.
 
-Vzhled je v `src/styles.css` a `src/responsive.css`, vlastní vektorová ilustrace v `src/Illustration.jsx`. Nepoužívají se externí fonty, obrázky, analytika ani sledovací služby.
+## Losování, verze a archiv
 
-## Ověření
+1. Projdi účastníky a případné duplicity. Zkontroluj propojení všech osob.
+2. Generátor zakáže stejné **směrované** přiřazení dárce → obdarovaný z aktuální verze předchozího kalendářního roku. Obrácený směr je jiné přiřazení. Pokud pro předchozí kalendářní rok není evidovaný los, tato historická omezení se neuplatní.
+3. Každý nově generovaný výsledek tvoří jeden kruh přes všechny účastníky. Každý právě jednou dává a dostává, nikdo sobě a žádné reciproční dvojice. Minimum jsou 3 lidé.
+4. Po kontrole napiš **LOSOVAT** a vytvoř verzi 1. První los uzavře přihlášky a odstranění účastníků.
+5. Před rozesláním SMS můžeš vytvořit další verzi: potvrď, že SMS ještě nebyly odeslané, a napiš **PRELOSOVAT**. Předchozí výsledek se nemaže. Další los se musí alespoň v jednom přiřazení lišit od dosavadního výsledku; nemusí se změnit každý příjemce.
+6. Výběrem verze si prohlédneš přesný archiv. Starší verze jsou pouze ke čtení. SMS se připravují jen pro aktuální verzi.
+7. Před rozesláním napiš **UZAMKNOUT** a potvrď definitivní výsledek. Poté se další přelosování odmítne. Zámek sám o sobě nedokazuje odeslání ani doručení zpráv.
+8. Pokud na ročník už navazuje losování následujícího roku, jeho historii nelze měnit ani přelosovat.
 
-```sh
+Server používá kryptografické náhodné promíchání, kontroly omezení a při obtížnější kombinaci náhodně řazené prohledávání možností. Pokud platný kruh neexistuje, vrátí chybu. Pokud narazí na bezpečnostní limit hledání, výslovně řekne, že nemožnost řešení nebyla prokázána. Pravidla se nikdy tiše neuvolňují.
+
+Databáze znovu kontroluje kompletní seznam, totožnosti, historická omezení, verzi předchozího roku a aktuální revizi dat. Nová verze i všechna přiřazení se uloží společně v jedné transakci. Neúspěšný či souběžný zastaralý pokus nemění dosavadní los.
+
+## Databázové tabulky
+
+| Tabulka | Účel |
+|---|---|
+| `santa_settings` | Jeden řádek s aktivním veřejným rokem |
+| `santa_event` | Jeden řádek na ročník, stav přihlášek, aktuální verze a revize dat |
+| `santa_people` | Stabilní totožnosti napříč roky |
+| `santa_participants` | Formuláře oddělené podle roku |
+| `santa_draws` | Verze losování, zdroj, čas, použitá loňská verze a definitivní zámek |
+| `santa_draw_entries` | Snapshot přesných přiřazení každé verze |
+| `santa_legacy_assignments` | Původní tabulka zachovaná při migraci, pro API pouze ke čtení |
+| `santa_rate_limits` | Sdílené limity požadavků |
+
+Původní řádek `santa_event.id = 1` zůstane zachovaný jako rok 2026. Identifikátor řádku není rok: rozhodující je sloupec `year`. `drawn_at` obsahuje čas aktuálního losu; u ruční historie může být neznámý. Pro existenci losování je rozhodující `current_version`.
+
+## Ochrana dat a limity
+
+Tabulky mají zapnuté RLS a odebraná oprávnění pro `anon`, `authenticated` a `PUBLIC`. Také RPC funkce smí spouštět pouze serverová role. Prohlížeč dostává veřejně jen aktivní rok, stav přihlášek a po odeslání vlastní jméno s titulem. Výsledky, historie a telefony vyžadují administrátorské heslo.
+
+Heslo je pouze v paměti otevřené administrace, neposílá se do cookies nebo browser storage. API odpovědi mají `Cache-Control: no-store`. Supabase klíč patří jen serveru; nikdy nepoužívej předponu `VITE_`.
+
+Zůstávají limity na IP a 15minutové okno: 20 pokusů o platné odeslání, 10 chybných administrátorských hesel a 300 autorizovaných operací. Při společné Wi-Fi se veřejný limit sdílí. Tělo požadavku má nejvýše 8 KB. Formulář obsahuje jednoduché pole proti botům; CAPTCHA ani globální počet účastníků nejsou součástí této verze.
+
+Jména, telefony a historie jsou osobní údaje v databázi organizátora. Soukromý historický import nepublikuj v otevřeném repozitáři. Historické SMS v archivu nejsou určeny k opětovnému rozesílání.
+
+## Vercel
+
+Do serverových Environment Variables nastav stejné čtyři proměnné z `.env.example`. Framework **Vite**, build **npm run build**, output **dist**, Node.js **22.x nebo novější**.
+
+Preview připojuj k samostatnému testovacímu Supabase projektu. Stejné klíče v Preview by zapisovaly do stejné databáze jako produkce. SQL migrace nejsou při běžném Vercel deploymentu aplikovány automaticky.
+
+Po schválení nasazení odešli commit a push do produkční větve. `vercel.json` obsluhuje `/admin`, bezpečnostní hlavičky a samostatnou serverovou funkci `/api/santa`. Tato implementace sama neprovádí commit, push, migraci produkce ani deployment.
+
+## Úpravy textů a ověření
+
+Dotazník a tituly: `shared/questionnaire.js` (`title`, `suffix`, funkce `elfTitle`). První vybraný výrok a načasování tvoří 27 kombinací. Změna textů nemění zpětně už uložené tituly.
+
+~~~sh
 npm test
 npm run build
-```
+~~~
 
-Testy používají skutečný PostgreSQL engine v paměti přes PGlite, stejnou SQL migraci a HTTP požadavky proti stejné API funkci. Nepřipojují se k živému Supabase. Ověřují validaci, bezpečnost databázových rolí a RPC, autentizaci, idempotenci, odstranění duplicit, ochranu zastaralého seznamu, jediné losování, uzavření akce, soukromí výsledků, SMS i databázové limity. Algoritmus se kontroluje při 600 losováních pro různé velikosti skupiny.
-
-Před ostrým provozem je potřeba ještě ověřit připojení skutečného Supabase a funkci v prostředí Vercelu s vlastními klíči. Žádná živá databáze ani hosting nebyly v rámci přípravy vytvořeny nebo změněny.
-
-## Dokumentace služeb
+Testy používají skutečný PostgreSQL engine v paměti přes PGlite, obě migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
 
 - [Vite na Vercelu](https://vercel.com/docs/frameworks/frontend/vite)
-- [Vercel request headers](https://vercel.com/docs/headers/request-headers)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Oprávnění databázových funkcí](https://supabase.com/docs/guides/database/functions)

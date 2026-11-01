@@ -29,8 +29,8 @@ export function saveSession(key, value) {
   } catch {}
 }
 
-export function Header({ children }) {
-  return <header className="header"><a className="brand" href="/" aria-label="Santova dílna – úvod"><svg viewBox="0 0 32 38" fill="none" aria-hidden="true"><path d="m16 2 8 12h-5l9 13H4l9-13H8L16 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M16 27v9M11 36h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg><span>santova dílna<small>TOVÁRNA NA MALÁ TAJEMSTVÍ</small></span></a>{children || <span className="season"><span className="status-dot" /> Vánoce {new Date().getFullYear()}</span>}</header>;
+export function Header({ children, year = new Date().getFullYear() }) {
+  return <header className="header"><a className="brand" href="/" aria-label="Santova dílna – úvod"><svg viewBox="0 0 32 38" fill="none" aria-hidden="true"><path d="m16 2 8 12h-5l9 13H4l9-13H8L16 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M16 27v9M11 36h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg><span>santova dílna<small>TOVÁRNA NA MALÁ TAJEMSTVÍ</small></span></a>{children || <span className="season"><span className="status-dot" /> Vánoce {year}</span>}</header>;
 }
 
 export function Footer() {

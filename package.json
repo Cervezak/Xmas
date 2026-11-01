@@ -8,7 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test test/santa.test.js"
+    "test": "node --test test/santa.test.js test/seasons.test.js test/render.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",

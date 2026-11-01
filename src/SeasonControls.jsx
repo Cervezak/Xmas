@@ -1,0 +1,12 @@
+import { useState } from 'react';
+
+export default function SeasonControls({ snapshot, busy, execute }) {
+  const [newYear, setNewYear] = useState(String(Math.max(...snapshot.years.map((event) => event.year)) + 1));
+  const [confirmation, setConfirmation] = useState('');
+  return <section className="admin-section season-controls">
+    <div className="section-toolbar"><h2>Ročníky Vánoc</h2><span className="selection-count">Na veřejném webu: {snapshot.activeYear}</span></div>
+    <div className="season-controls-grid"><div><label htmlFor="view-year">Prohlížet ročník</label><select id="view-year" value={snapshot.year} disabled={busy} onChange={(event) => { setConfirmation(''); execute('admin-list', { year: Number(event.target.value) }); }}>{snapshot.years.map((event) => <option key={event.year} value={event.year}>{event.year}{event.year === snapshot.activeYear ? ' — aktivní na webu' : ''}</option>)}</select><p className="muted">Prohlížení historie nemění ročník na veřejné stránce.</p></div>
+      <form onSubmit={async (event) => { event.preventDefault(); if (await execute('admin-create-year', { year: Number(newYear) })) setNewYear(String(Number(newYear) + 1)); }}><label htmlFor="new-year">Založit nový ročník</label><div className="season-input-row"><input id="new-year" type="number" min="2020" max="2100" required disabled={busy} value={newYear} onChange={(event) => setNewYear(event.target.value)} /><button className="secondary" disabled={busy}>Založit ročník</button></div><p className="muted">Nový ročník začne s prázdným seznamem. Historie zůstane zachovaná.</p></form></div>
+    {snapshot.year !== snapshot.activeYear && <form className="activate-season" onSubmit={async (event) => { event.preventDefault(); if (await execute('admin-activate-year', { expectedActiveYear: snapshot.activeYear, confirmation })) setConfirmation(''); }}><p><strong>Zveřejnit ročník {snapshot.year} na formuláři?</strong><br />{snapshot.registrationOpen ? 'Nové přihlášky pak budou patřit tomuto roku.' : 'Tento ročník má přihlášky uzavřené. Veřejný formulář bude uzavřený.'}</p><label htmlFor="activate-confirm">Napiš AKTIVOVAT {snapshot.year}</label><div className="season-input-row"><input id="activate-confirm" autoComplete="off" disabled={busy} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /><button className="primary" disabled={busy || confirmation !== 'AKTIVOVAT ' + snapshot.year}>Aktivovat {snapshot.year}</button></div></form>}
+  </section>;
+}
