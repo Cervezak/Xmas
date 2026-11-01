@@ -47,11 +47,10 @@ export function validateSubmission(input) {
 }
 
 export function smsText(giver, receiver, rules = '') {
-  const wishes = receiver.statements.map((id) => STATEMENTS.find((item) => item.id === id)?.label).filter(Boolean).join(' ');
   return [
     `Ahoj ${giver.name}! Tady Santova dílna.`,
     giver.elfTitle ? `Tvůj elfí titul: ${giver.elfTitle}.` : '',
-    `Letos tajně obdaruješ: ${receiver.name}.` + (wishes ? ` Malá nápověda pro radost: ${wishes}` : ''),
+    `Letos tajně obdaruješ: ${receiver.name}.`,
     rules.trim() ? `Pravidla pro letošní nadělování:\n${rules.trim()}` : '',
     'Pšššt, nech si to pro sebe. Veselé Vánoce!',
   ].filter(Boolean).join('\n\n');

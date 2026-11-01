@@ -25,7 +25,7 @@ V Supabase SQL Editoru spusť pouze nový soubor `supabase/migrations/2026110100
 
 V administraci vyber ročník a najdi **Pravidla nadělování**. Klikni na **Upravit pravidla**, napiš text a stiskni **Potvrdit a vložit do SMS**. Do potvrzení se texty zpráv nemění. Zrušením úprav zahodíš rozepsaný text. Každý rok má vlastní pravidla; nově založený rok začíná s prázdným polem.
 
-SMS obsahuje původní oslovení, uložený elfí titul adresáta z jeho přihlášky, obdarovaného s nápovědou, potvrzená pravidla a rozloučení. Prázdná pravidla tento blok vynechají. Více řádků se zachová, limit je 2 000 znaků; delší text s diakritikou se může rozdělit do více SMS.
+SMS obsahuje původní oslovení, uložený elfí titul adresáta z jeho přihlášky, obdarovaného, potvrzená pravidla a rozloučení. Prázdná pravidla tento blok vynechají. Více řádků se zachová, limit je 2 000 znaků; delší text s diakritikou se může rozdělit do více SMS.
 
 Pravidla lze upravit i po definitivním uzamčení losu: aktualizují se pouze připravené texty, nikoli dvojice, verze nebo již odeslané zprávy. Pravidla patří celému ročníku; nejsou archivem přesného znění dříve poslaných SMS. Ručně vložená historie 2025 zůstává jen ke čtení.
 

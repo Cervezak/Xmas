@@ -13,6 +13,8 @@ test('SMS keep the greeting, include the giver title and place multiline rules i
   assert.ok(text.startsWith('Ahoj Testovací Elf! Tady Santova dílna.'));
   assert.ok(text.includes('Tvůj elfí titul: Mistr stuh.'));
   assert.ok(text.includes('Letos tajně obdaruješ: Druhý Elf.'));
+  assert.ok(!text.includes('Malá nápověda'));
+  assert.ok(!text.includes('Deka, čaj a nikam nemusím.'));
   assert.ok(text.endsWith('Pravidla pro letošní nadělování:\n' + rules + '\n\nPšššt, nech si to pro sebe. Veselé Vánoce!'));
   const empty = smsText({ name: 'Elf' }, { name: 'Druhý', statements: [] }, '');
   assert.ok(!empty.includes('undefined'));
