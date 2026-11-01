@@ -2,9 +2,11 @@
 
 Ověřováno 1. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
 
-- Automatické testy: **25 prošlo, 0 selhalo**.
+- Automatické testy: **30 prošlo, 0 selhalo**.
 - Produkční build React/Vite: úspěšný.
-- Testy spouštějí obě SQL migrace v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
+- Testy spouštějí všechny tři SQL migrace v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
+- Ověřeno ukládání pravidel podle ročníku, prázdná pravidla nového roku, původní oslovení a uložený titul dárce v SMS, víceřádková pravidla před rozloučením a jejich vynechání při prázdném textu.
+- Ověřena oprávnění nové RPC, validace, zastaralé souběžné úpravy, zachování dvojic/verzí/zámku při změně pravidel i po uzamčení a stejné SMS po opětovném načtení. Šestý test vykreslení kontroluje bezpečné zobrazení pravidel bez interpretace HTML a nepřítomnost editoru u ruční historie.
 - Ověřeno zachování původních formulářů a přiřazení jako 2026/verze 1, včetně původního času a funkčního opakování již uloženého požadavku.
 - Ověřen přesný archiv starších verzí, přelosování s potvrzením neodeslaných SMS, nemožnost totožného nového výsledku a definitivní zámek před rozesláním.
 - Ověřen zákaz opakování předchozího kalendářního roku. Generátor zachovává jeden kruh bez sebe-přiřazení nebo recipročních dvojic. Testuje i nemožné zadání a limit hledání bez tichého uvolnění pravidel.

@@ -11,6 +11,7 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
   await engine.exec(await readFile(new URL('../supabase/migrations/202610260001_santa.sql', import.meta.url), 'utf8'));
   if (legacySetup) await legacySetup(engine);
   await engine.exec(await readFile(new URL('../supabase/migrations/202611010001_seasons_and_versions.sql', import.meta.url), 'utf8'));
+  await engine.exec(await readFile(new URL('../supabase/migrations/202611010002_sms_rules.sql', import.meta.url), 'utf8'));
   if (history) {
     const people = [];
     for (const name of familyNames) {
@@ -31,6 +32,7 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
         santa_public_event: ['select public.santa_public_event() as data', []],
         santa_submit: ['select public.santa_submit($1::jsonb) as data', [JSON.stringify(args.input_data)]],
         santa_snapshot: ['select public.santa_snapshot($1::integer, $2::integer) as data', [args.input_year ?? null, args.input_version ?? null]],
+        santa_set_rules: ['select public.santa_set_rules($1::integer,$2::text,$3::bigint) as data', [args.input_year, args.input_rules, args.input_revision]],
         santa_remove: ['select public.santa_remove($1::uuid,$2::integer,$3::bigint) as data', [args.input_id, args.input_year, args.input_revision]],
         santa_create_year: ['select public.santa_create_year($1::integer) as data', [args.input_year]],
         santa_activate_year: ['select public.santa_activate_year($1::integer,$2::integer) as data', [args.input_year, args.input_expected_active]],

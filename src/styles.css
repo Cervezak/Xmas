@@ -225,3 +225,8 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .history-table th { background: #e9eddf; font-weight: 600; }
 .sms-heading, .lock-draw h3 { font-size: 1.5rem; letter-spacing: -.5px; }
 .lock-draw { margin-top: 28px; padding: 24px; border: 1px solid #d7ddcc; border-radius: 8px; }
+.season-rules { margin: 36px 0; padding: clamp(20px, 4vw, 28px); border: 1px solid var(--line); border-radius: 10px; background: #eeeee3; }
+.season-rules textarea { display: block; width: 100%; box-sizing: border-box; min-height: 160px; resize: vertical; font: inherit; line-height: 1.6; color: var(--green); background: #fffdf8; border: 1px solid #d8dace; border-radius: 7px; padding: 14px; }
+.season-rules textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+.rules-preview { white-space: pre-wrap; overflow-wrap: anywhere; padding: 18px; border: 1px solid var(--line); border-radius: 7px; background: #fffdf8; }
+.season-rules .sms-actions > button { white-space: normal; }

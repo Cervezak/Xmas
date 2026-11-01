@@ -13,6 +13,7 @@ const isYear = (value) => Number.isInteger(value) && value >= 2020 && value <= 2
 const isRevision = (value) => Number.isSafeInteger(value) && value >= 0;
 
 const databaseErrors = {
+  SANTA_INVALID_RULES: 'Pravidla mohou mít nejvýše 2 000 znaků a nesmí obsahovat skryté řídicí znaky.',
   SANTA_CLOSED: 'Losování už proběhlo. Přihlášky jsou uzavřené.',
   SANTA_CHANGED: 'Data se změnila. Obnov seznam a zkontroluj jej znovu.',
   SANTA_MINIMUM: 'K losování jsou potřeba alespoň 3 účastníci.',
@@ -69,7 +70,7 @@ export function createHandler({ environment = process.env, database, chooseCircl
       }
       const input = await readBody(request);
       if (!input || typeof input !== 'object' || Array.isArray(input)) throw new HttpError(400, 'Formulář nemá správný formát.');
-      if (!['event', 'submit', 'admin-list', 'admin-delete', 'admin-draw', 'admin-create-year', 'admin-activate-year', 'admin-person', 'admin-lock'].includes(input.action)) throw new HttpError(400, 'Neznámá operace.');
+      if (!['event', 'submit', 'admin-list', 'admin-delete', 'admin-draw', 'admin-create-year', 'admin-activate-year', 'admin-person', 'admin-lock', 'admin-rules'].includes(input.action)) throw new HttpError(400, 'Neznámá operace.');
       if (!environment.SUPABASE_URL || !environment.SUPABASE_SERVICE_ROLE_KEY || !environment.ADMIN_PASSWORD || environment.ADMIN_PASSWORD.length < 24 || !environment.RATE_LIMIT_SALT || environment.RATE_LIMIT_SALT.length < 32) throw new HttpError(503, 'Dílna ještě není připojená. Zkus to prosím později.');
       const client = database ?? createClient(environment.SUPABASE_URL, environment.SUPABASE_SERVICE_ROLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -112,7 +113,11 @@ export function createHandler({ environment = process.env, database, chooseCircl
       if (input.year !== undefined && !isYear(input.year)) throw new HttpError(400, databaseErrors.SANTA_INVALID_YEAR);
       if (input.action !== 'admin-list' && !isYear(input.year)) throw new HttpError(400, databaseErrors.SANTA_INVALID_YEAR);
       if (input.action === 'admin-list' && input.version !== undefined && (!Number.isInteger(input.version) || input.version < 1)) throw new HttpError(400, 'Neplatná verze.');
-      if (['admin-delete', 'admin-person', 'admin-draw', 'admin-lock'].includes(input.action) && !isRevision(input.revision)) throw new HttpError(400, 'Obnov data před provedením změny.');
+      if (['admin-delete', 'admin-person', 'admin-draw', 'admin-lock', 'admin-rules'].includes(input.action) && !isRevision(input.revision)) throw new HttpError(400, 'Obnov data před provedením změny.');
+      if (input.action === 'admin-rules') {
+        if (typeof input.rules !== 'string' || input.rules.length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(input.rules)) throw new HttpError(400, databaseErrors.SANTA_INVALID_RULES);
+        await rpc('santa_set_rules', { input_year: input.year, input_rules: input.rules, input_revision: input.revision });
+      }
       if (input.action === 'admin-create-year') {
         await rpc('santa_create_year', { input_year: input.year });
       }
@@ -171,7 +176,7 @@ export function createHandler({ environment = process.env, database, chooseCircl
       const messages = snapshot.selectedVersion === snapshot.currentVersion && draw?.source !== 'manual'
         ? snapshot.assignments.filter((entry) => entry.giverPhone).map((entry) => ({
           giverId: entry.giver_id, receiverId: entry.receiver_id, phone: entry.giverPhone,
-          text: smsText({ name: entry.giverName }, { name: entry.receiverName, statements: entry.receiverStatements }),
+          text: smsText({ name: entry.giverName, elfTitle: entry.giverElfTitle }, { name: entry.receiverName, statements: entry.receiverStatements }, snapshot.rules),
         })) : [];
       send(200, { ...snapshot, messages });
     } catch (error) {

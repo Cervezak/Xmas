@@ -9,7 +9,7 @@
 1. Před změnou si stáhni export současných účastníků a přiřazení ze Supabase.
 2. V Supabase SQL Editoru spusť celý soubor `supabase/migrations/202611010001_seasons_and_versions.sql`. Je to jednorázová transakční migrace.
 3. Potom spusť soukromý soubor `supabase/private/2025-history.sql`, případně stažený `2025-historie-soukrome.sql`. Obsahuje deset ručně dodaných dvojic z roku 2025. Je mimo Git díky `.gitignore`, aby se historické výsledky nezveřejnily se zdrojovým kódem.
-4. Nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
+4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
 5. V `/admin` vyber rok 2026. U každé přihlášky zvol skutečnou osobu z historie a klikni na **Potvrdit totožnost**. Při účasti nového člověka zvol **Nová osoba**. Shoda jména je jen nápověda, nic se automaticky nehádá.
 6. Dosavadní los uvidíš jako **2026, verze 1**. Jestli potřebuješ nový výsledek a **SMS ještě neodešly**, vytvoř další verzi. Výsledek před rozesláním definitivně uzamkni.
 
@@ -18,6 +18,16 @@ Pokud už byly SMS rozeslané, nepotvrzuj prohlášení, že odeslané nejsou. S
 Soukromý import 2025 nemění letošní výsledek, aktivní ročník ani registrace. Datum skutečného losování v roce 2025 nebylo dodané, proto zůstává neznámé. Historie přesně zachovává i reciproční dvojice a více kruhů, které platily tehdy. Nová pravidla se uplatňují pouze na nově generované losy.
 
 Neúplná či nenačtená historie 2025 zablokuje nové losování 2026. Import je jednorázový; při druhém spuštění se zastaví a nic nepřepíše. Pokud po neúspěšném běhu SQL Editor uvádí otevřenou chybnou transakci, proveď `ROLLBACK` před dalším pokusem.
+
+## Aktualizace SMS, pokud už máš ročníky a historii
+
+V Supabase SQL Editoru spusť pouze nový soubor `supabase/migrations/202611010002_sms_rules.sql`, potom odešli změny kódu přes GitHub Desktop. Starší migrace ani import 2025 znovu nespouštěj. Nová migrace zachová všechna přiřazení, verze i zámky a přidá pravidla pro SMS. Pro 2026 předvyplní: **Připrav 2–3 dárky v celkové hodnotě nejvýše 3 000 Kč.**
+
+V administraci vyber ročník a najdi **Pravidla nadělování**. Klikni na **Upravit pravidla**, napiš text a stiskni **Potvrdit a vložit do SMS**. Do potvrzení se texty zpráv nemění. Zrušením úprav zahodíš rozepsaný text. Každý rok má vlastní pravidla; nově založený rok začíná s prázdným polem.
+
+SMS obsahuje původní oslovení, uložený elfí titul adresáta z jeho přihlášky, obdarovaného s nápovědou, potvrzená pravidla a rozloučení. Prázdná pravidla tento blok vynechají. Více řádků se zachová, limit je 2 000 znaků; delší text s diakritikou se může rozdělit do více SMS.
+
+Pravidla lze upravit i po definitivním uzamčení losu: aktualizují se pouze připravené texty, nikoli dvojice, verze nebo již odeslané zprávy. Pravidla patří celému ročníku; nejsou archivem přesného znění dříve poslaných SMS. Ručně vložená historie 2025 zůstává jen ke čtení.
 
 ## Nová instalace
 
@@ -46,9 +56,10 @@ V Supabase SQL Editoru spusť v tomto pořadí:
 
 1. `supabase/migrations/202610260001_santa.sql`
 2. `supabase/migrations/202611010001_seasons_and_versions.sql`
-3. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
+3. `supabase/migrations/202611010002_sms_rules.sql`
+4. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
 
-První dvě migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
+První tři migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
 
 ~~~sh
 npm run dev
@@ -136,7 +147,7 @@ npm test
 npm run build
 ~~~
 
-Testy používají skutečný PostgreSQL engine v paměti přes PGlite, obě migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
+Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všechny tři migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
 
 - [Vite na Vercelu](https://vercel.com/docs/frameworks/frontend/vite)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)

@@ -6,7 +6,7 @@ export default function DrawPanel({ snapshot, busy, execute, onError }) {
   const [confirmation, setConfirmation] = useState('');
   const [lockConfirmation, setLockConfirmation] = useState('');
   const [revealed, setRevealed] = useState(false);
-  const [copied, setCopied] = useState('');
+  const [copied, setCopied] = useState(null);
   const selected = snapshot.draws.find((draw) => draw.version === snapshot.selectedVersion);
   const isCurrent = snapshot.selectedVersion === snapshot.currentVersion;
   const locked = snapshot.draws.some((draw) => draw.smsLockedAt);
@@ -25,7 +25,7 @@ export default function DrawPanel({ snapshot, busy, execute, onError }) {
     }
   };
   const copy = async (message) => {
-    try { await navigator.clipboard.writeText(message.text); setCopied(message.giverId); }
+    try { await navigator.clipboard.writeText(message.text); setCopied({ giverId: message.giverId, text: message.text }); }
     catch { onError('Kopírování prohlížeč nepovolil. Označ a zkopíruj text SMS ručně.'); }
   };
   return <>
@@ -35,7 +35,7 @@ export default function DrawPanel({ snapshot, busy, execute, onError }) {
       {repeats > 0 && <p className="notice">Tato verze obsahuje {repeats} přiřazení shodných s rokem {snapshot.previousDraw.year}. Původní výsledek se automaticky nepřepisuje; nové losování tato přiřazení zakáže.</p>}
       <button className="secondary" type="button" onClick={() => setRevealed(!revealed)}>{revealed ? 'Skrýt tajné výsledky' : 'Zobrazit tajné výsledky'}</button>
       {revealed && <><div className="history-table-wrap"><table className="history-table"><thead><tr><th scope="col">Kdo dává</th><th scope="col">Komu dává</th></tr></thead><tbody>{snapshot.assignments.map((entry, index) => <tr key={entry.giver_id || entry.giverPersonId || index}><td>{entry.giverName}</td><td>{entry.receiverName}</td></tr>)}</tbody></table></div>
-        {snapshot.messages.length > 0 && <><h3 className="sms-heading">SMS k ručnímu odeslání · {snapshot.year}, verze {snapshot.currentVersion}</h3><p className="muted">Před rozesláním definitivně uzamkni aktuální výsledek níže. Kopírování ani otevření SMS neeviduje doručení; zprávu odešleš ručně. Delší text s diakritikou se může rozdělit do více SMS.</p><div className="sms-grid">{snapshot.messages.map((message) => <article className="sms-card" key={message.giverId}><p className="eyebrow">PRO: {snapshot.assignments.find((entry) => entry.giver_id === message.giverId)?.giverName}</p><strong>{message.phone}</strong><p className="sms-body">{message.text}</p><div className="sms-actions"><button className="secondary" onClick={() => copy(message)}>{copied === message.giverId ? 'Zkopírováno ✓' : 'Kopírovat text'}</button><a className="text-button" href={'sms:' + message.phone + '?body=' + encodeURIComponent(message.text)}>Otevřít SMS ↗</a></div></article>)}</div></>}
+        {snapshot.messages.length > 0 && <><h3 className="sms-heading">SMS k ručnímu odeslání · {snapshot.year}, verze {snapshot.currentVersion}</h3><p className="muted">Před rozesláním definitivně uzamkni aktuální výsledek níže. Kopírování ani otevření SMS neeviduje doručení; zprávu odešleš ručně. Delší text s diakritikou se může rozdělit do více SMS.</p><div className="sms-grid">{snapshot.messages.map((message) => <article className="sms-card" key={message.giverId}><p className="eyebrow">PRO: {snapshot.assignments.find((entry) => entry.giver_id === message.giverId)?.giverName}</p><strong>{message.phone}</strong><p className="sms-body">{message.text}</p><div className="sms-actions"><button className="secondary" onClick={() => copy(message)}>{copied?.giverId === message.giverId && copied.text === message.text ? 'Zkopírováno ✓' : 'Kopírovat text'}</button><a className="text-button" href={'sms:' + message.phone + '?body=' + encodeURIComponent(message.text)}>Otevřít SMS ↗</a></div></article>)}</div></>}
       </>}
       {isCurrent && !manual && (locked ? <p className="notice">Výsledek byl definitivně uzamčen pro rozeslání SMS. Další přelosování není možné.</p> : <form className="lock-draw" onSubmit={(event) => { event.preventDefault(); execute('admin-lock', { version: snapshot.currentVersion, confirmation: lockConfirmation }); }}><h3>Definitivně potvrdit výsledek</h3><p>Uzamčení zablokuje další přelosování. Použij ho před rozesláním SMS, případně hned po něm.</p><label htmlFor="lock-confirm">Pro potvrzení napiš UZAMKNOUT</label><div className="season-input-row"><input id="lock-confirm" autoComplete="off" disabled={busy} value={lockConfirmation} onChange={(event) => setLockConfirmation(event.target.value)} /><button className="secondary" disabled={busy || lockConfirmation !== 'UZAMKNOUT'}>Uzamknout výsledek</button></div></form>)}
     </section>}

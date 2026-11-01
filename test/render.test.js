@@ -12,6 +12,7 @@ let Participant;
 let DrawPanel;
 let SeasonControls;
 let ParticipantList;
+let SeasonRules;
 const entries = new Map();
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
 before(async () => {
@@ -23,6 +24,7 @@ before(async () => {
   DrawPanel = (await vite.ssrLoadModule('/src/DrawPanel.jsx')).default;
   SeasonControls = (await vite.ssrLoadModule('/src/SeasonControls.jsx')).default;
   ParticipantList = (await vite.ssrLoadModule('/src/ParticipantList.jsx')).default;
+  SeasonRules = (await vite.ssrLoadModule('/src/SeasonRules.jsx')).default;
   database = await createDatabase();
 });
 after(async () => {
@@ -76,4 +78,15 @@ test('manual historical draw renders read-only controls with hidden results and 
   assert.ok(!html.includes('id="draw-confirm"'));
   assert.ok(!html.includes('id="lock-confirm"'));
   assert.ok(!html.includes('Testovací osoba'));
+});
+
+test('season rules show saved text safely and only offer editing for regular years', async () => {
+  const snapshot = { ...(await database.rpc('santa_snapshot', { input_year: 2026 })).data, rules: '<script>pokus</script>\nDruhý řádek' };
+  const html = renderToStaticMarkup(React.createElement(SeasonRules, { snapshot, busy: false, execute() {} }));
+  assert.ok(html.includes('Upravit pravidla'));
+  assert.ok(html.includes('&lt;script&gt;pokus&lt;/script&gt;'));
+  assert.ok(!html.includes('<script>'));
+  assert.ok(!html.includes('<textarea'));
+  const historical = (await database.rpc('santa_snapshot', { input_year: 2025 })).data;
+  assert.equal(renderToStaticMarkup(React.createElement(SeasonRules, { snapshot: historical, busy: false, execute() {} })), '');
 });

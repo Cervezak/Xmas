@@ -46,7 +46,13 @@ export function validateSubmission(input) {
   return { name, phone, statements: input.statements, timing: input.timing, idempotencyKey: input.idempotencyKey, nameKey: normalizeName(name), elfTitle: elfTitle(input.statements, input.timing), year: input.year };
 }
 
-export function smsText(giver, receiver) {
+export function smsText(giver, receiver, rules = '') {
   const wishes = receiver.statements.map((id) => STATEMENTS.find((item) => item.id === id)?.label).filter(Boolean).join(' ');
-  return `Ahoj ${giver.name}! Tady Santova dílna. Letos tajně obdaruješ: ${receiver.name}. Malá nápověda pro radost: ${wishes} Pšššt, nech si to pro sebe. Veselé Vánoce!`;
+  return [
+    `Ahoj ${giver.name}! Tady Santova dílna.`,
+    giver.elfTitle ? `Tvůj elfí titul: ${giver.elfTitle}.` : '',
+    `Letos tajně obdaruješ: ${receiver.name}.` + (wishes ? ` Malá nápověda pro radost: ${wishes}` : ''),
+    rules.trim() ? `Pravidla pro letošní nadělování:\n${rules.trim()}` : '',
+    'Pšššt, nech si to pro sebe. Veselé Vánoce!',
+  ].filter(Boolean).join('\n\n');
 }
