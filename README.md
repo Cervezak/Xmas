@@ -138,6 +138,12 @@ Preview připojuj k samostatnému testovacímu Supabase projektu. Stejné klíč
 
 Po schválení nasazení odešli commit a push do produkční větve. `vercel.json` obsluhuje `/admin`, bezpečnostní hlavičky a samostatnou serverovou funkci `/api/santa`. Tato implementace sama neprovádí commit, push, migraci produkce ani deployment.
 
+## Oprava opakujícího se seznamu v administraci
+
+Seznam účastníků a box s pravidly mají odlišné React klíče podle sekce a roku. Obnovení dat ani potvrzení pravidel tak nevytváří další kopie seznamu. Při přepnutí roku se rozepsané úpravy stále oddělují.
+
+Tato oprava vyžaduje jen commit/push a nový deployment, žádné další SQL nebo přelosování. Po dokončení deploymentu obnov administraci pomocí Ctrl+F5. Test opakovaných aktualizací je součástí npm test; používá jsdom a smyšlené API odpovědi.
+
 ## Úpravy textů a ověření
 
 Dotazník a tituly: `shared/questionnaire.js` (`title`, `suffix`, funkce `elfTitle`). První vybraný výrok a načasování tvoří 27 kombinací. Změna textů nemění zpětně už uložené tituly.

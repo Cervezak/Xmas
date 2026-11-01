@@ -2,7 +2,8 @@
 
 Ověřováno 1. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
 
-- Automatické testy: **30 prošlo, 0 selhalo**.
+- Automatické testy: **31 prošlo, 0 selhalo**.
+- Nový interakční test celé administrace přes React DOM a jsdom zopakoval chybu duplicitního seznamu účastníků před opravou a po opravě prošel. Kontroluje jeden seznam, jeden box pravidel a správný počet SMS při opakovaném načítání, ukládání a rušení pravidel, chybové odpovědi i přepínání roků. Test používá smyšlená data a nahrazené API; nepřipojuje se k produkci.
 - Produkční build React/Vite: úspěšný.
 - Testy spouštějí všechny tři SQL migrace v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
 - Ověřeno ukládání pravidel podle ročníku, prázdná pravidla nového roku, původní oslovení a uložený titul dárce v SMS, víceřádková pravidla před rozloučením a jejich vynechání při prázdném textu.
@@ -18,6 +19,6 @@ Ověřováno 1. 11. 2026 lokálně. Žádná živá databáze, její stávajíc�
 - Soukromý skutečný import 2025 byl zvlášť ověřen v dočasné databázi: všech deset dodaných dvojic zůstalo přesně zachováno a následný testovací los deseti účastníků neměl žádné opakování. Tyto reálné dvojice nejsou v běžných testech nebo veřejném klientském kódu.
 - Soukromý import je v ignorované složce supabase/private a předává se samostatně. Strukturální migrace neobsahuje skutečná rodinná přiřazení.
 
-Vizuální kontrola v připojeném prohlížeči zůstává neověřená; lokální náhled v tomto prostředí při předchozích pokusech nebyl dostupný. Ověřené je sestavení a serverové vykreslení důležitých stavů, nikoli konkrétní obrazové rozložení.
+Vizuální kontrola v připojeném prohlížeči zůstává neověřená; lokální náhled v tomto prostředí při předchozích pokusech nebyl dostupný. Ověřené je sestavení, serverové vykreslení důležitých stavů i interakce administrace v jsdom, nikoli konkrétní obrazové rozložení.
 
 Před ostrým provozem je třeba provést strukturální migraci, soukromý import a deployment podle README. Žádná migrace ani přelosování produkce se tímto lokálním ověřením neprovádí. U dříve rozeslaných SMS se nesmí potvrzovat, že ještě odeslané nebyly.
