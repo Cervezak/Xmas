@@ -230,3 +230,11 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .season-rules textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .rules-preview { white-space: pre-wrap; overflow-wrap: anywhere; padding: 18px; border: 1px solid var(--line); border-radius: 7px; background: #fffdf8; }
 .season-rules .sms-actions > button { white-space: normal; }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+.admin-tabs [role="tab"] { flex: 1 1 180px; min-width: 0; min-height: 56px; padding: 14px 20px; border: 1px solid #d0d8c7; border-radius: 8px; background: #eeeee3; color: var(--green); font: inherit; font-weight: 600; cursor: pointer; }
+.admin-tabs [role="tab"][aria-selected="true"] { background: var(--green); color: #fffdf8; border-color: var(--green); }
+.admin-tabs [role="tab"]:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.admin-tabs [role="tab"]:disabled { cursor: wait; opacity: .65; }
+.admin-tab-panel[hidden] { display: none; }
+.admin-tab-panel .season-rules { margin-top: 0; }
+.admin-tab-panel .draw-history, .admin-tab-panel .draw-panel:first-child, .admin-tab-panel .sms-section:first-child { margin-top: 0; }

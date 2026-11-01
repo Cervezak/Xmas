@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { api, Header, Footer } from './common.jsx';
 import SeasonControls from './SeasonControls.jsx';
-import ParticipantList from './ParticipantList.jsx';
-import DrawPanel from './DrawPanel.jsx';
-import SeasonRules from './SeasonRules.jsx';
+import AdminTabs from './AdminTabs.jsx';
 
 export default function AdminApp() {
   const [password, setPassword] = useState('');
@@ -29,9 +27,7 @@ export default function AdminApp() {
       {error && <p className="error" role="alert">{error}</p>}
       <SeasonControls snapshot={snapshot} busy={busy} execute={execute} />
       <div className="admin-stats"><div><strong>{snapshot.participants.length}</strong><span>účastníků · {snapshot.year}</span></div><div><strong>{duplicateIds.size}</strong><span>přihlášek k prověření</span></div><div><strong className="state-word">{snapshot.currentVersion ? 'Verze ' + snapshot.currentVersion : 'Otevřeno'}</strong><span>{snapshot.registrationOpen ? 'přihlášky pro tento rok jsou otevřené' : 'přihlášky pro tento rok jsou uzavřené'}</span></div></div>
-      <ParticipantList key={'participants:' + snapshot.year} snapshot={snapshot} busy={busy} execute={execute} />
-      <SeasonRules key={'rules:' + snapshot.year} snapshot={snapshot} busy={busy} execute={execute} />
-      <DrawPanel key={'draw:' + snapshot.year + ':' + snapshot.selectedVersion} snapshot={snapshot} busy={busy} execute={execute} onError={setError} />
+      <AdminTabs key={snapshot.year} snapshot={snapshot} busy={busy} execute={execute} onError={setError} />
     </>}
   </main><Footer /></div>;
 }

@@ -138,6 +138,18 @@ Preview připojuj k samostatnému testovacímu Supabase projektu. Stejné klíč
 
 Po schválení nasazení odešli commit a push do produkční větve. `vercel.json` obsluhuje `/admin`, bezpečnostní hlavičky a samostatnou serverovou funkci `/api/santa`. Tato implementace sama neprovádí commit, push, migraci produkce ani deployment.
 
+## Záložky administrace
+
+Výběr ročníku a přehled počtů jsou společné pro všechny záložky:
+
+- **Účastníci 2026** (název se mění podle zvoleného roku): přihlášky, hledání, totožnosti a kontrola duplicit.
+- **Pravidla a SMS**: úprava společných pravidel a zobrazení/kopírování zpráv aktuální verze. Z tohoto místa lze přejít k uzamčení výsledku.
+- **Losování**: historie verzí, zobrazení dvojic, nové losování, přelosování a definitivní zámek.
+
+Přepnutí záložky zachová rozepsaná pravidla, ale skryje odhalené SMS a výsledky. Přepnutí ročníku otevře Účastníky a vyčistí místní rozepsané formuláře. Z archivu se při přechodu na SMS načte aktuální verze; starší SMS se nenabízejí.
+
+Záložky lze ovládat také šipkami vlevo/vpravo a klávesami Home/End. Na užším displeji se tlačítka zalomí. Tato změna vyžaduje pouze commit/push a deployment, bez dalšího SQL.
+
 ## Oprava opakujícího se seznamu v administraci
 
 Seznam účastníků a box s pravidly mají odlišné React klíče podle sekce a roku. Obnovení dat ani potvrzení pravidel tak nevytváří další kopie seznamu. Při přepnutí roku se rozepsané úpravy stále oddělují.
