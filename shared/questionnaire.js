@@ -48,10 +48,10 @@ export function validateSubmission(input) {
 
 export function smsText(giver, receiver, rules = '') {
   return [
-    `Ahoj ${giver.name}! Tady Santova dílna.`,
-    giver.elfTitle ? `Tvůj elfí titul: ${giver.elfTitle}.` : '',
-    `Letos tajně obdaruješ: ${receiver.name}.`,
-    rules.trim() ? `Pravidla pro letošní nadělování:\n${rules.trim()}` : '',
-    'Pšššt, nech si to pro sebe. Veselé Vánoce!',
+    `Ahoj ${giver.name}! Tady Santova dílna. 🎄`,
+    giver.elfTitle ? `🧝 Tvůj elfí titul zní: ${giver.elfTitle}.` : '',
+    `🎁 Letos tajně obdaruješ: ${receiver.name}.`,
+    rules.trim() ? `📜 Pravidla pro letošní nadělování:\n${rules.trim()}` : '',
+    'Pšššt, nech si to pro sebe. Veselé Vánoce! ✨',
   ].filter(Boolean).join('\n\n');
 }

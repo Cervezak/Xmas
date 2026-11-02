@@ -11,11 +11,11 @@ test('SMS keep the greeting, include the giver title and place multiline rules i
   const rules = 'Připrav 2–3 dárky.\nCelková hodnota nejvýše 3 000 Kč.';
   const text = smsText({ name: 'Testovací Elf', elfTitle: 'Mistr stuh' }, { name: 'Druhý Elf', statements: ['cozy'] }, rules);
   assert.ok(text.startsWith('Ahoj Testovací Elf! Tady Santova dílna.'));
-  assert.ok(text.includes('Tvůj elfí titul: Mistr stuh.'));
+  assert.ok(text.includes('🧝 Tvůj elfí titul zní: Mistr stuh.'));
   assert.ok(text.includes('Letos tajně obdaruješ: Druhý Elf.'));
   assert.ok(!text.includes('Malá nápověda'));
   assert.ok(!text.includes('Deka, čaj a nikam nemusím.'));
-  assert.ok(text.endsWith('Pravidla pro letošní nadělování:\n' + rules + '\n\nPšššt, nech si to pro sebe. Veselé Vánoce!'));
+  assert.ok(text.endsWith('📜 Pravidla pro letošní nadělování:\n' + rules + '\n\nPšššt, nech si to pro sebe. Veselé Vánoce! ✨'));
   const empty = smsText({ name: 'Elf' }, { name: 'Druhý', statements: [] }, '');
   assert.ok(!empty.includes('undefined'));
   assert.ok(!empty.includes('Pravidla pro'));
@@ -75,7 +75,7 @@ test('confirmed rules update SMS even after final locking, retaining exact draw 
   for (const message of updated.body.messages) {
     const giver = updated.body.participants.find((person) => person.id === message.giverId);
     const receiver = updated.body.assignments.find((entry) => entry.giver_id === message.giverId);
-    assert.ok(message.text.includes('Tvůj elfí titul: ' + giver.elfTitle));
+    assert.ok(message.text.includes('Tvůj elfí titul zní: ' + giver.elfTitle));
     assert.ok(message.text.includes(receiver.receiverName));
     assert.ok(message.text.includes(rules));
   }
