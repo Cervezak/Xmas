@@ -72,7 +72,7 @@ test('admin updates keep a single participant list, rules editor and SMS panel a
     assert.equal(document.querySelectorAll('#participant-filter').length, 1);
     assert.equal(document.querySelectorAll('.season-rules').length, 1, 'Rules box must not be duplicated');
     assert.equal(document.querySelectorAll('.sms-card').length, sms);
-    assert.equal(document.querySelectorAll('[role="tab"]').length, 3);
+    assert.equal(document.querySelectorAll('[role="tab"]').length, 4);
     assert.equal(document.querySelectorAll('[role="tabpanel"]:not([hidden])').length, 1);
     assert.ok(document.querySelector('.season-controls'));
     assert.ok(!document.querySelector('.season-controls').closest('[hidden]'));

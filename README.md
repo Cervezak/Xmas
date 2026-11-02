@@ -1,6 +1,6 @@
 # Santova dílna · Secret Santa
 
-Česká responzivní React/Vite SPA s ročníky, verzemi losování a neveřejnou administrací. Veřejný formulář vždy patří jedinému aktivnímu roku. Výsledky jsou dostupné pouze správci, SMS se posílají ručně.
+Česká responzivní React/Vite SPA s ročníky, verzemi losování a neveřejnou administrací. Veřejný formulář vždy patří jedinému aktivnímu roku. Tajná přiřazení jsou dostupná pouze správci, SMS se posílají ručně. Výsledky rodinných her jsou součástí veřejné herní části.
 
 ## Aktualizace existující instalace z října 2026
 
@@ -9,7 +9,7 @@
 1. Před změnou si stáhni export současných účastníků a přiřazení ze Supabase.
 2. V Supabase SQL Editoru spusť celý soubor `supabase/migrations/202611010001_seasons_and_versions.sql`. Je to jednorázová transakční migrace.
 3. Potom spusť soukromý soubor `supabase/private/2025-history.sql`, případně stažený `2025-historie-soukrome.sql`. Obsahuje deset ručně dodaných dvojic z roku 2025. Je mimo Git díky `.gitignore`, aby se historické výsledky nezveřejnily se zdrojovým kódem.
-4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
+4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Spusť také `supabase/migrations/202611020001_easter_games.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
 5. V `/admin` vyber rok 2026. U každé přihlášky zvol skutečnou osobu z historie a klikni na **Potvrdit totožnost**. Při účasti nového člověka zvol **Nová osoba**. Shoda jména je jen nápověda, nic se automaticky nehádá.
 6. Dosavadní los uvidíš jako **2026, verze 1**. Jestli potřebuješ nový výsledek a **SMS ještě neodešly**, vytvoř další verzi. Výsledek před rozesláním definitivně uzamkni.
 
@@ -28,6 +28,32 @@ V administraci vyber ročník a najdi **Pravidla nadělování**. Klikni na **Up
 SMS obsahuje původní oslovení, uložený elfí titul adresáta z jeho přihlášky, obdarovaného, potvrzená pravidla a rozloučení. Prázdná pravidla tento blok vynechají. Více řádků se zachová, limit je 2 000 znaků; delší text s diakritikou se může rozdělit do více SMS.
 
 Pravidla lze upravit i po definitivním uzamčení losu: aktualizují se pouze připravené texty, nikoli dvojice, verze nebo již odeslané zprávy. Pravidla patří celému ročníku; nejsou archivem přesného znění dříve poslaných SMS. Ručně vložená historie 2025 zůstává jen ke čtení.
+
+## Easter eggy: přidání do již fungující instalace
+
+Pokud už máš ročníky i pravidla SMS, v Supabase SQL Editoru spusť jednou celý soubor `supabase/migrations/202611020001_easter_games.sql`. Původní migrace ani historii 2025 znovu nespouštěj. Potom odešli nový kód přes GitHub Desktop a počkej na úspěšný deployment. Žádné nové klíče nebo služby nejsou potřeba. Hry nepřepisují účastníky, přiřazení, SMS ani zámek losování.
+
+V administraci vyber ročník → **Easter eggy** → **Nová hra**. Zvol **Historku** nebo **Rozpoznání obrázku**, napiš zadání a nastav 1–3 otázky. Každá otázka má 2–10 možností a jednu označenou správnou odpověď. Můžeš doplnit pointu, která se ukáže až po úplném vyřešení nebo v archivu.
+
+- **Uložit koncept** uchová vyplněnou hru bez zveřejnění. Koncept musí mít platné zadání a řešení.
+- **Náhled hry** ukáže obsah i správné řešení pouze organizátorovi.
+- **Potvrdit a naplánovat** zveřejní hru v nastaveném budoucím čase. Pro rychlé spuštění vyber čas za několik minut.
+- Termíny se zadávají pro **Europe/Prague**, včetně letního času. Neexistující nebo dvojznačné časy při změně času se odmítnou.
+- Každá zveřejněná hra v ročníku musí mít odlišný čas začátku. Aktivní je poslední již spuštěná hra, která poběží do začátku další. Poslední hra bez následníka nemá automatický konec.
+- Budoucí hru lze upravit nebo vrátit do konceptů. Již spuštěné hře nelze změnit termín nebo ji stáhnout. Po prvním platném pokusu nebo po ukončení nelze upravovat ani obsah a řešení.
+
+Obrázky JPG/PNG/WebP do 10 MB prohlížeč zmenší (nejdelší strana nejvýše 1 400 px) a připraví pro uložení do 500 KiB. Ukládají se do soukromé tabulky v Supabase; není třeba zakládat Storage bucket. Budoucí obrázky, zadání a pointy veřejné API nevydává. Pro tuto rodinnou akci je objem malý; velké galerie nejsou účelem této verze.
+
+Na hlavní stránce je část **Vánoční záhady** i při uzavřených přihláškách nebo u vlastního potvrzení. Seznam obsahuje jména z aktuální verze losování aktivního ročníku. Bez losování není za koho hrát. Jméno není přihlášení: kdokoli ho může vybrat a všichni pod stejným jménem sdílejí jeden postup i na různých zařízeních.
+
+Jeden úplný výběr odpovědí a kliknutí na **Ověřit odpovědi** je jeden pokus. Chybný pokus dovolí další hraní. Ukládá se nejlepší počet správných odpovědí dané hry, nikoli součet za opakované pokusy. Úplně správné řešení uloží konkrétní výběr a další změny pro toto jméno zablokuje. Opakované načtení ani opakované doručení stejného požadavku pokus nepřidá.
+
+Počítadla u jmen sčítají pokusy, nejlepší výsledky a vyřešené hry celého ročníku. V **archivu** jsou termíny od–do, zadání, řešení, vlastní uložený výsledek a jména řešitelů s jejich výsledky. Ukončenou hru už nelze řešit. Archiv na hlavní stránce patří aktivnímu ročníku, starší ročníky zůstávají v administraci.
+
+Rozhoduje čas serveru, ne telefonu. Veřejná stránka obnovuje stav při návratu do okna a přibližně každých 30 sekund; na hranici termínu může být obrázek ještě chvíli z minulé hry, ale server už další pokus nepřijme. Tlačítko **Obnovit hry** načte aktuální stav hned. Není potřeba cron nebo nové nasazení ke každé hře.
+
+Nový endpoint `/api/games` používá stejné serverové proměnné jako Santa. Role anon/authenticated nemají přímý přístup k herním tabulkám ani funkcím. Ověření odpovědí probíhá na serveru; řešení se vydává až při úspěchu nebo po skončení hry. Limity na IP za 15 minut jsou 3 000 herních čtení a 200 pokusů, odděleně od registrací a administrace.
+
 
 ## Nová instalace
 
@@ -57,9 +83,10 @@ V Supabase SQL Editoru spusť v tomto pořadí:
 1. `supabase/migrations/202610260001_santa.sql`
 2. `supabase/migrations/202611010001_seasons_and_versions.sql`
 3. `supabase/migrations/202611010002_sms_rules.sql`
-4. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
+4. `supabase/migrations/202611020001_easter_games.sql`
+5. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
 
-První tři migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
+První čtyři migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
 
 ~~~sh
 npm run dev
@@ -145,6 +172,7 @@ Výběr ročníku a přehled počtů jsou společné pro všechny záložky:
 - **Účastníci 2026** (název se mění podle zvoleného roku): přihlášky, hledání, totožnosti a kontrola duplicit.
 - **Pravidla a SMS**: úprava společných pravidel a zobrazení/kopírování zpráv aktuální verze. Z tohoto místa lze přejít k uzamčení výsledku.
 - **Losování**: historie verzí, zobrazení dvojic, nové losování, přelosování a definitivní zámek.
+- **Easter eggy**: zadání, obrázky, otázky, plánování a výsledky her.
 
 Přepnutí záložky zachová rozepsaná pravidla, ale skryje odhalené SMS a výsledky. Přepnutí ročníku otevře Účastníky a vyčistí místní rozepsané formuláře. Z archivu se při přechodu na SMS načte aktuální verze; starší SMS se nenabízejí.
 
@@ -165,7 +193,7 @@ npm test
 npm run build
 ~~~
 
-Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všechny tři migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
+Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všechny čtyři migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
 
 - [Vite na Vercelu](https://vercel.com/docs/frameworks/frontend/vite)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)

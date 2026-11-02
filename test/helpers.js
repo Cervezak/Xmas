@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createHandler } from '../api/santa.js';
+import { createGamesHandler } from '../api/games.js';
 import { normalizeName } from '../shared/questionnaire.js';
 
 export async function createDatabase({ legacySetup, history = true } = {}) {
@@ -12,6 +13,7 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
   if (legacySetup) await legacySetup(engine);
   await engine.exec(await readFile(new URL('../supabase/migrations/202611010001_seasons_and_versions.sql', import.meta.url), 'utf8'));
   await engine.exec(await readFile(new URL('../supabase/migrations/202611010002_sms_rules.sql', import.meta.url), 'utf8'));
+  await engine.exec(await readFile(new URL('../supabase/migrations/202611020001_easter_games.sql', import.meta.url), 'utf8'));
   if (history) {
     const people = [];
     for (const name of familyNames) {
@@ -28,6 +30,10 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
     engine,
     async rpc(name, args = {}) {
       const calls = {
+        santa_games_save: ['select public.santa_games_save($1::integer,$2::jsonb) as data', [args.input_year,JSON.stringify(args.input_game)]],
+        santa_games_admin: ['select public.santa_games_admin($1::integer,$2::uuid) as data', [args.input_year,args.input_id ?? null]],
+        santa_games_public: ['select public.santa_games_public($1::integer,$2::uuid,$3::uuid) as data', [args.input_year,args.input_game ?? null,args.input_participant ?? null]],
+        santa_games_attempt: ['select public.santa_games_attempt($1::integer,$2::uuid,$3::uuid,$4::jsonb,$5::uuid,$6::bigint) as data', [args.input_year,args.input_game,args.input_participant,JSON.stringify(args.input_answers),args.input_request,args.input_revision]],
         santa_rate_limit: ['select public.santa_rate_limit($1, $2) as data', [args.input_key, args.input_scope]],
         santa_public_event: ['select public.santa_public_event() as data', []],
         santa_submit: ['select public.santa_submit($1::jsonb) as data', [JSON.stringify(args.input_data)]],
@@ -65,18 +71,22 @@ export const historyPairs = [[0, 1], [1, 0], [2, 7], [3, 8], [4, 9], [5, 6], [6,
 
 export async function createTestApp(options = {}) {
   const database = await createDatabase(options);
-  const server = createServer(createHandler({ environment: testEnvironment, database, ...(options.chooseCircle ? { chooseCircle: options.chooseCircle } : {}) }));
+  const santaHandler = createHandler({ environment: testEnvironment, database, ...(options.chooseCircle ? { chooseCircle: options.chooseCircle } : {}) });
+  const gamesHandler = createGamesHandler({ environment: testEnvironment, database });
+  const server = createServer((request,response) => (request.url === '/api/games' ? gamesHandler : santaHandler)(request,response));
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const request = async (body, password, overrides = {}) => {
-    const response = await fetch('http://127.0.0.1:' + server.address().port, {
+    const { path = '', ...fetchOptions } = overrides;
+    const response = await fetch('http://127.0.0.1:' + server.address().port + path, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(password ? { Authorization: 'Bearer ' + password } : {}) },
-      body: JSON.stringify(body), ...overrides,
+      body: JSON.stringify(body), ...fetchOptions,
     });
     return { status: response.status, headers: response.headers, body: await response.json() };
   };
   const admin = (action, data = {}) => request({ action, ...data }, testEnvironment.ADMIN_PASSWORD);
   return {
     database, request, admin,
+    games: (action,data = {},authenticated = false) => request({action,...data},authenticated ? testEnvironment.ADMIN_PASSWORD : undefined,{path:'/api/games'}),
     async enroll(names, year = 2026) {
       for (const name of names) {
         const result = await request({ action: 'submit', ...submission({ name, year }) });

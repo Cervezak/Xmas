@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useCallback,useState } from 'react';
 import { api, Header, Footer } from './common.jsx';
 import SeasonControls from './SeasonControls.jsx';
 import AdminTabs from './AdminTabs.jsx';
+import { gamesApi } from '../shared/games.js';
 
 export default function AdminApp() {
   const [password, setPassword] = useState('');
   const [snapshot, setSnapshot] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const requestGame = useCallback(async(action,data)=>{
+    try { return await gamesApi(action,data,password); }
+    catch(failure) {
+      if(failure.status===401){setSnapshot(null);setPassword('');}
+      throw failure;
+    }
+  },[password]);
   const execute = async (action, data = {}) => {
     setBusy(true); setError('');
     try {
@@ -27,7 +35,7 @@ export default function AdminApp() {
       {error && <p className="error" role="alert">{error}</p>}
       <SeasonControls snapshot={snapshot} busy={busy} execute={execute} />
       <div className="admin-stats"><div><strong>{snapshot.participants.length}</strong><span>účastníků · {snapshot.year}</span></div><div><strong>{duplicateIds.size}</strong><span>přihlášek k prověření</span></div><div><strong className="state-word">{snapshot.currentVersion ? 'Verze ' + snapshot.currentVersion : 'Otevřeno'}</strong><span>{snapshot.registrationOpen ? 'přihlášky pro tento rok jsou otevřené' : 'přihlášky pro tento rok jsou uzavřené'}</span></div></div>
-      <AdminTabs key={snapshot.year} snapshot={snapshot} busy={busy} execute={execute} onError={setError} />
+      <AdminTabs key={snapshot.year} snapshot={snapshot} busy={busy} execute={execute} onError={setError} requestGame={requestGame} />
     </>}
   </main><Footer /></div>;
 }

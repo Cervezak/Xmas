@@ -238,3 +238,53 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .admin-tab-panel[hidden] { display: none; }
 .admin-tab-panel .season-rules { margin-top: 0; }
 .admin-tab-panel .draw-history, .admin-tab-panel .draw-panel:first-child, .admin-tab-panel .sms-section:first-child { margin-top: 0; }
+
+/* Family games and their editor */
+.family-games { margin: 48px 0 64px; padding: clamp(20px,4vw,36px); background: #eeeee3; border: 1px solid var(--line); border-radius: 12px; }
+.game-roster { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,230px),1fr)); gap: 12px; margin: 24px 0; }
+.game-person { text-align: left; min-height: 100px; padding: 16px 18px; border: 1px solid #cbd5c3; border-radius: 8px; background: #fffdf8; color: var(--green); cursor: pointer; }
+.game-person strong, .game-person span { display: block; overflow-wrap: anywhere; }
+.game-person span { font-size: .9rem; margin-top: 6px; line-height: 1.5; }
+.game-person[aria-pressed="true"] { background: var(--green); color: #fffdf8; border-color: var(--green); }
+.game-person:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.game-selected { font-size: 1.1rem; }
+.game-play { margin-top: 28px; padding-top: 28px; border-top: 1px solid #cbd5c3; }
+.game-play h3, .game-editor h3 { font-size: 1.55rem; }
+.game-story { white-space: pre-wrap; overflow-wrap: anywhere; }
+.game-image { display: block; width: 100%; max-width: 800px; max-height: 620px; object-fit: contain; background: white; border: 1px solid var(--line); border-radius: 8px; margin: 22px auto; }
+.game-choices { margin: 24px 0; }
+.game-choices legend { font-size: 1.15rem; font-weight: 600; margin-bottom: 14px; }
+.game-choice { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 1px solid #cbd5c3; border-radius: 7px; margin-bottom: 10px; background: #fffdf8; cursor: pointer; }
+.game-choice input, .game-answer-radio input { flex: 0 0 auto; margin-top: 5px; }
+.game-choice.selected { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.game-choice.correct { background: #e0eddb; }
+.game-correct { color: #325e35; }
+.game-score { padding: 12px 0; }
+.game-point { border-left: 3px solid var(--gold); padding: 8px 20px; margin: 24px 0; background: #fffdf8; }
+.game-point h4 { margin-top: 12px; }
+.game-results { margin-top: 28px; }
+.game-results summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.games-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.game-admin-list { max-height: 380px; overflow-y: auto; margin: 24px 0; border: 1px solid var(--line); border-radius: 8px; }
+.game-list-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 18px; border-bottom: 1px solid var(--line); }
+.game-list-row:last-child { border-bottom: 0; }
+.game-list-row.selected { background: #e9eddf; }
+.game-list-row p { font-size: .9rem; margin: 8px 0 0; color: var(--muted); }
+.game-list-row strong { overflow-wrap: anywhere; }
+.game-editor { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--line); }
+.game-editor-fields { display: grid; gap: 12px; min-width: 0; }
+.game-editor-fields > label { margin-top: 16px; }
+.game-editor-fields textarea { display: block; width: 100%; resize: vertical; font: inherit; line-height: 1.6; color: var(--green); background: #fffdf8; border: 1px solid #d8dace; border-radius: 7px; padding: 14px; }
+.game-editor-fields textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+.game-editor .games-buttons { margin-top: 24px; }
+.game-question-editor { margin: 18px 0; padding: 22px; background: #eeeee3; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.game-option-editor { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; gap: 12px; align-items: center; margin: 14px 0; }
+.game-answer-radio { margin: 0; cursor: pointer; }
+.game-preview { padding: 24px; margin: 28px 0; border: 1px dashed var(--gold); border-radius: 8px; }
+@media (max-width: 700px) {
+  .game-list-row { flex-wrap: wrap; gap: 12px; }
+  .game-option-editor { grid-template-columns: 28px minmax(0,1fr); }
+  .game-option-editor > button { grid-column: 2; justify-self: start; }
+  .game-question-editor { padding: 16px; }
+  .games-buttons > button { white-space: normal; }
+}

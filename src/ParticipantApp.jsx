@@ -3,6 +3,7 @@ import { STATEMENTS, TIMINGS, validateSubmission } from '../shared/questionnaire
 import { api, Header, Footer } from './common.jsx';
 import { readSeasonSession, saveSeasonSession } from '../shared/season-storage.js';
 import Illustration from './Illustration.jsx';
+import GamesSection from './GamesSection.jsx';
 
 function NameBadge({ name, onSave, locked }) {
   const [editing, setEditing] = useState(false);
@@ -146,6 +147,7 @@ export function SeasonParticipantApp({ event, eventError, onRefresh }) {
       </>}
       <div className="how-it-works"><span><b>01</b> Představ se</span><span className="step-line" /><span><b>02</b> Ukaž své vánoční já</span><span className="step-line" /><span><b>03</b> Vyhlížej tajnou SMS</span></div>
     </main>}
+    <GamesSection key={'games:'+year} year={year} />
     <Footer />
   </div>;
 }

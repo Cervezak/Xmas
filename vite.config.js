@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), {
       name: 'local-santa-api',
       configureServer(server) {
+        server.middlewares.use('/api/games', async (request, response) => {
+          try {
+            const { default: handler } = await server.ssrLoadModule('/api/games.js');
+            await handler(request, response);
+          } catch {
+            response.writeHead(500, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify({ error: 'Lokální hry se nepodařilo spustit.' }));
+          }
+        });
         server.middlewares.use('/api/santa', async (request, response) => {
           try {
             const { default: handler } = await server.ssrLoadModule('/api/santa.js');

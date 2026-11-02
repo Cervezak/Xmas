@@ -3,13 +3,15 @@ import ParticipantList from './ParticipantList.jsx';
 import SeasonRules from './SeasonRules.jsx';
 import SmsPanel from './SmsPanel.jsx';
 import DrawPanel from './DrawPanel.jsx';
+import AdminGames from './AdminGames.jsx';
 
-export default function AdminTabs({ snapshot, busy, execute, onError }) {
+export default function AdminTabs({ snapshot, busy, execute, onError, requestGame }) {
   const [selected, setSelected] = useState('participants');
   const tabs = [
     { id: 'participants', label: 'Účastníci ' + snapshot.year },
     { id: 'sms', label: 'Pravidla a SMS' },
     { id: 'draw', label: 'Losování' },
+    { id: 'games', label: 'Easter eggy' },
   ];
   const selectTab = (id) => {
     setSelected(id);
@@ -40,6 +42,9 @@ export default function AdminTabs({ snapshot, busy, execute, onError }) {
     </div>
     <div className="admin-tab-panel" id="admin-panel-draw" role="tabpanel" aria-labelledby="admin-tab-draw" hidden={selected !== 'draw'}>
       <DrawPanel key={'draw:' + snapshot.selectedVersion} snapshot={snapshot} busy={busy} execute={execute} onError={onError} active={selected === 'draw'} />
+    </div>
+    <div className="admin-tab-panel" id="admin-panel-games" role="tabpanel" aria-labelledby="admin-tab-games" hidden={selected !== 'games'}>
+      <AdminGames year={snapshot.year} active={selected==='games'} request={requestGame} />
     </div>
   </div>;
 }
