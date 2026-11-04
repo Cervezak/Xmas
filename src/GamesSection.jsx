@@ -1,5 +1,6 @@
 import { useCallback,useEffect,useRef,useState } from 'react';
 import { gamesApi,formatGameDate } from '../shared/games.js';
+import GuestQuestionnaire from './GuestQuestionnaire.jsx';
 
 export function GamePlay({game,personId,onAttempt,submitting}) {
   const [answers,setAnswers]=useState(()=>game.progress?.answers ?? game.questions.map(()=>-1));
@@ -33,7 +34,7 @@ export function GamePlay({game,personId,onAttempt,submitting}) {
       </fieldset>)}
       {!ended && !solved && personId && <button className="primary" disabled={submitting || answers.some((answer)=>answer<0)}>{submitting?'Ověřuji…':'Ověřit odpovědi'}</button>}
     </form>
-    {game.revealText && <div className="game-point"><h4>Jak to bylo doopravdy</h4><p className="game-story">{game.revealText}</p></div>}
+    {(game.revealText || game.revealImageData) && <div className="game-point"><h4>Jak to bylo doopravdy</h4>{game.revealText && <p className="game-story">{game.revealText}</p>}{game.revealImageData && <img className="game-image" src={game.revealImageData} alt="Originální fotografie po odhalení" />}</div>}
     <details className="game-results"><summary>Kdo tuto hru řešil</summary>
       {game.players.length===0?<p className="muted">Tuto hru zatím nikdo neřešil.</p>:<div className="history-table-wrap"><table className="history-table"><thead><tr><th>Jméno</th><th>Vyřešeno</th></tr></thead><tbody>{game.players.map((player,index)=><tr key={index}><td>{player.name}</td><td>{player.solved?'Ano':'Ne'}</td></tr>)}</tbody></table></div>}
     </details>
@@ -97,12 +98,15 @@ export default function GamesSection({year}) {
         <strong>{person.name}</strong><span>Vyřešené hry: {person.solvedGames}</span>
       </button>)}</div>}
       {selected && <p className="game-selected" role="status">Hraješ jako <strong>{selected.name}</strong>.</p>}
+      {ready && selected?.guest && <GuestQuestionnaire key={selected.id} year={year} person={selected} profile={data.guestProfile} gameId={gameId} disabled={submitting}
+        onBusy={(value)=>{playing.current=value;if(value)sequence.current+=1;setSubmitting(value);if(!value)setLoading(false);}}
+        onComplete={(result)=>{setView({data:result,personId,gameId});setFeedback('');}} />}
       {data.names.length>0 && <p className="muted">U každého jména vidíš počet vyřešených her za celý ročník.</p>}
       <label htmlFor={'game-archive-'+year}>Aktuální hra a archiv</label>
       <select id={'game-archive-'+year} disabled={submitting} value={gameId ?? ''} onChange={(event)=>{setGameId(event.target.value || null);setFeedback('');setError('');}}>
         <option value="">Aktuální hra</option>{data.games.filter((item)=>item.status==='archived').map((item)=><option key={item.id} value={item.id}>{item.title} · {formatGameDate(item.startsAt)} → {formatGameDate(item.endsAt)}</option>)}
       </select>
-      {!ready?<p role="status">Načítám vybranou hru a výsledek…</p>:!game?<p className="empty-state">{data.nextStartsAt?'Další hra začne '+formatGameDate(data.nextStartsAt)+'.':'První záhada se tu objeví, až ji organizátor spustí.'}</p>:<>
+      {!ready?<p role="status">Načítám vybranou hru a výsledek…</p>:!game?<p className="empty-state">{data.nextStartsAt?'Další hra začne '+formatGameDate(data.nextStartsAt)+'.':data.games.length>0?'Momentálně není spuštěná žádná hra. Starší hry najdeš v archivu.':'První záhada se tu objeví, až ji organizátor spustí.'}</p>:<>
         {feedback && <p className="notice" role="status">{feedback}</p>}
         <GamePlay key={game.id+':'+game.revision+':'+(personId ?? 'visitor')} game={game} personId={personId} submitting={submitting} onAttempt={attempt} />
       </>}

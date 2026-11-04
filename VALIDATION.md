@@ -1,15 +1,21 @@
 # Ověření ročníků a verzí losování
 
-Plná sada ověřena 2. 11. 2026, poslední cílená kontrola 4. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
+Ověřeno 4. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
 
-- Plná sada 2. 11.: **43 prošlo, 0 selhalo**.
+- Plná sada: **54 prošlo, 0 selhalo**.
+- Ověřeno odmítnutí ukládání novým kódem, pokud ještě není aplikovaná nová SQL struktura, aby se neztratila fotografie pointy.
+- Soukromý import dvou dohodnutých jmen byl navíc ověřen samostatně v dočasné databázi: opakované spuštění nevytvoří duplicity a nepřidá žádné přihlášky do losování.
+- Ověřeno přidání samostatných herních hostů bez změny účastníků, přiřazení, revize losování a SMS; zabránění jejich podstrčení do losu; dobrovolný dotazník bez telefonu, jeho neměnnost a opakování stejného požadavku.
+- Ověřeno ukrytí originální fotografie před úspěchem, její odhalení pro správné jméno a v archivu, obě velké obrázkové přílohy v jednom požadavku a uzamčení řešení po prvním pokusu.
+- Ověřeno potvrzené mazání konceptu a budoucí hry, zrušení rozehrané hry se zachováním správních výsledků, vyřazení z veřejného skóre a zachování hranice předchozího archivu, aby se stará hra neotevřela. Ověřeno zachování původních ID a skóre při migraci cizích klíčů.
+- Interakční testy pokrývají obě nahrávání obrázků a náhled pointy, mazání a zrušení přes administraci, přidání hostů, dobrovolný dotazník a jeho uložený titul po obnovení stránky. Testovací Vite servery mají vypnutý WebSocket, aby souběžné testy nesdílely port.
 - Kontrola 4. 11.: všech 12 herních testů a produkční build prošly. Veřejné rozhraní ukazuje jen počet vyřešených her; podrobné počty pokusů a správných odpovědí nevydává ani veřejné API. Ověřeno u seznamu jmen, průběhu hry, odpovědi na pokus, obnovení stránky a archivu. Administrátorské API i tabulka výsledků nadále obsahují skutečné počty pokusů a nejlepší počet správných odpovědí.
 - Dvanáct nových serverových a interakčních testů ověřuje hry: administrátorské oprávnění, zamezení úniku konceptů a budoucích obrázků, skryté řešení aktivní hry, český čas a přechody letního času, ochranu zastaralých úprav, uzamčení po prvním pokusu, nejlepší skóre bez opakovaného sčítání, souběžné opakované požadavky, trvalé správné odpovědi po obnovení a odmítnutí pozdních pokusů.
 - Interakční herní testy používají skutečnou API funkci s dočasnou PostgreSQL databází a smyšlenými jmény. Ověřují výběr jména, chybný i správný pokus, obnovení stránky, přepnutí aktivní hry při návratu do okna, archiv s termíny a řešiteli a editor obrázkové hry od konceptu po zveřejnění. jsdom nedekóduje obrázky a nekreslí canvas, proto jsou v testu nahrazené tyto dvě browserové operace; ukládání výsledného obrázku a validace přes API jsou skutečné. Vizuální kvalita komprese není tímto ověřena.
 - Rozšířený interakční test administrace ověřuje jediný viditelný panel, přepínání záložek kliknutím i klávesnicí, trvale dostupný výběr ročníku, zachování rozepsaných pravidel mezi záložkami, jejich oddělení při změně roku a skrytí tajných SMS i výsledků při odchodu. Ověřuje také přelosování, uzamčení a načtení aktuálních SMS při přechodu z archivu.
 - Nový interakční test celé administrace přes React DOM a jsdom zopakoval chybu duplicitního seznamu účastníků před opravou a po opravě prošel. Kontroluje jeden seznam, jeden box pravidel a správný počet SMS při opakovaném načítání, ukládání a rušení pravidel, chybové odpovědi i přepínání roků. Test používá smyšlená data a nahrazené API; nepřipojuje se k produkci.
 - Produkční build React/Vite: úspěšný.
-- Testy spouštějí všechny čtyři SQL migrace v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
+- Testy spouštějí všech pět SQL migrací v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
 - Ověřeno ukládání pravidel podle ročníku, prázdná pravidla nového roku, původní oslovení a uložený titul dárce v SMS, víceřádková pravidla před rozloučením a jejich vynechání při prázdném textu.
 - Ověřena oprávnění nové RPC, validace, zastaralé souběžné úpravy, zachování dvojic/verzí/zámku při změně pravidel i po uzamčení a stejné SMS po opětovném načtení. Šestý test vykreslení kontroluje bezpečné zobrazení pravidel bez interpretace HTML a nepřítomnost editoru u ruční historie.
 - Ověřeno zachování původních formulářů a přiřazení jako 2026/verze 1, včetně původního času a funkčního opakování již uloženého požadavku.

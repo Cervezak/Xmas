@@ -78,7 +78,7 @@ test('drafts and future stories/images never appear in public payloads, and opti
   for(const forbidden of ['Soukromý koncept','Naplánovaná tajná historka','Tajný obrázek','Neveřejná pointa',png])
     assert.ok(!JSON.stringify(listing.body).includes(forbidden));
   assert.equal((await read({gameId:story.id})).status,409);
-  assert.ok(listing.body.names.every((name)=>Object.keys(name).sort().join(',')==='id,name,solvedGames'));
+  assert.ok(listing.body.names.every((name)=>Object.keys(name).sort().join(',')==='guest,id,name,profileCompleted,solvedGames'));
 });
 
 test('server time selects the active game without exposing answers or family draw details',async()=>{

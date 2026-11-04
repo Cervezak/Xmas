@@ -9,7 +9,7 @@
 1. Před změnou si stáhni export současných účastníků a přiřazení ze Supabase.
 2. V Supabase SQL Editoru spusť celý soubor `supabase/migrations/202611010001_seasons_and_versions.sql`. Je to jednorázová transakční migrace.
 3. Potom spusť soukromý soubor `supabase/private/2025-history.sql`, případně stažený `2025-historie-soukrome.sql`. Obsahuje deset ručně dodaných dvojic z roku 2025. Je mimo Git díky `.gitignore`, aby se historické výsledky nezveřejnily se zdrojovým kódem.
-4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Spusť také `supabase/migrations/202611020001_easter_games.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
+4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Spusť také `supabase/migrations/202611020001_easter_games.sql`. Spusť také `supabase/migrations/202611040001_game_guests_and_reveals.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
 5. V `/admin` vyber rok 2026. U každé přihlášky zvol skutečnou osobu z historie a klikni na **Potvrdit totožnost**. Při účasti nového člověka zvol **Nová osoba**. Shoda jména je jen nápověda, nic se automaticky nehádá.
 6. Dosavadní los uvidíš jako **2026, verze 1**. Jestli potřebuješ nový výsledek a **SMS ještě neodešly**, vytvoř další verzi. Výsledek před rozesláním definitivně uzamkni.
 
@@ -44,7 +44,7 @@ V administraci vyber ročník → **Easter eggy** → **Nová hra**. Zvol **Hist
 
 Obrázky JPG/PNG/WebP do 10 MB prohlížeč zmenší (nejdelší strana nejvýše 1 400 px) a připraví pro uložení do 500 KiB. Ukládají se do soukromé tabulky v Supabase; není třeba zakládat Storage bucket. Budoucí obrázky, zadání a pointy veřejné API nevydává. Pro tuto rodinnou akci je objem malý; velké galerie nejsou účelem této verze.
 
-Na hlavní stránce je část **Vánoční záhady** i při uzavřených přihláškách nebo u vlastního potvrzení. Seznam obsahuje jména z aktuální verze losování aktivního ročníku. Bez losování není za koho hrát. Jméno není přihlášení: kdokoli ho může vybrat a všichni pod stejným jménem sdílejí jeden postup i na různých zařízeních.
+Na hlavní stránce je část **Vánoční záhady** i při uzavřených přihláškách nebo u vlastního potvrzení. Seznam obsahuje jména z aktuální verze losování aktivního ročníku a samostatné herní hosty. Bez losování mohou hrát pouze přidaní herní hosté. Jméno není přihlášení: kdokoli ho může vybrat a všichni pod stejným jménem sdílejí jeden postup i na různých zařízeních.
 
 Jeden úplný výběr odpovědí a kliknutí na **Ověřit odpovědi** je jeden pokus. Chybný pokus dovolí další hraní. Ukládá se nejlepší počet správných odpovědí dané hry, nikoli součet za opakované pokusy. Úplně správné řešení uloží konkrétní výběr a další změny pro toto jméno zablokuje. Opakované načtení ani opakované doručení stejného požadavku pokus nepřidá.
 
@@ -53,6 +53,26 @@ U jmen se veřejně zobrazuje pouze počet vyřešených her celého ročníku. 
 Rozhoduje čas serveru, ne telefonu. Veřejná stránka obnovuje stav při návratu do okna a přibližně každých 30 sekund; na hranici termínu může být obrázek ještě chvíli z minulé hry, ale server už další pokus nepřijme. Tlačítko **Obnovit hry** načte aktuální stav hned. Není potřeba cron nebo nové nasazení ke každé hře.
 
 Nový endpoint `/api/games` používá stejné serverové proměnné jako Santa. Role anon/authenticated nemají přímý přístup k herním tabulkám ani funkcím. Ověření odpovědí probíhá na serveru; řešení se vydává až při úspěchu nebo po skončení hry. Limity na IP za 15 minut jsou 3 000 herních čtení a 200 pokusů, odděleně od registrací a administrace.
+
+
+## Obrázek odhalení, mazání her a samostatní hráči
+
+Pro instalaci, která už má Easter eggy, spusť pouze novou migraci `supabase/migrations/202611040001_game_guests_and_reveals.sql`. Potom můžeš jednorázově spustit soukromý soubor `supabase/private/2026-game-guests.sql` se dvěma dohodnutými jmény. Soukromý soubor je mimo Git a mimo zdrojový ZIP; další hráče lze přidávat přímo v administraci. Nakonec odešli nový kód přes GitHub Desktop.
+
+### Originální fotografie v pointě
+U typu **Rozpoznání obrázku** zůstává hlavní obrázek hádankou, například karikaturou. Druhé pole **Originální fotka do pointy** slouží pro skutečnou fotografii. Zobrazí se až po úplně správném vyřešení pro zvolené jméno nebo po skončení hry v archivu. Funguje i bez textové pointy. Pro oba obrázky platí původní omezení velikosti a zmenšení v prohlížeči. Veřejné API před vyřešením či ukončením originál nevydává. Historka se používá stejně jako dosud.
+
+### Smazání a zrušení
+V editoru uložené hry je **Smazat koncept**, **Smazat hru** nebo **Zrušit hru**. Odstranění se potvrzuje napsáním **ODSTRANIT**. Koncept a dosud nespouštěná hra bez výsledků se smažou včetně obrázků. Již spuštěná hra se stáhne z veřejné nabídky a její výsledky zůstanou v administraci jako zrušené. Zrušená hra se nezapočítává do veřejného počtu vyřešených her.
+
+Zrušení spuštěné hry nikdy znovu neotevře jejího předchůdce. Bez další naplánované hry může být hlavní stránka dočasně bez aktivní hry; ostatní ukončené hry zůstávají v archivu. Zrušenou hru nelze znovu upravit nebo aktivovat; opravené zadání založ jako novou hru.
+
+### Hráči mimo losování
+V záložce **Easter eggy** rozbal **Hráči pouze pro easter eggy** a přidej jméno. Hráč patří ke skutečnému ročníku, má stejné hry a statistiky jako ostatní, ale nevstupuje do losování ani do SMS. Falešný ročník není potřeba.
+
+Po výběru takového jména na hlavní stránce je k dispozici dobrovolný dotazník se stejnými vánočními výroky a načasováním jako původní formulář, bez telefonu. Udělí elfí titul, odpovědi se po potvrzení uzamknou a nepřihlásí člověka k dárkům. Při návratu stačí znovu vybrat jméno. Detailní odpovědi vidí organizátor u herních hostů, veřejně se pro vybrané jméno zobrazuje pouze titul a stav dokončení.
+
+Herní hráči mají samostatnou tabulku `santa_game_players`. Existující výsledky i ID původních hráčů migrace zachová. Nové přihlášky pro losování se do herního seznamu synchronizují, ale stanou se veřejnými až podle aktuálního losu. Herní hosté mohou hrát i před losováním. Každý ročník má vlastní hosty; automaticky se mezi roky nepřenášejí.
 
 
 ## Nová instalace
@@ -84,9 +104,10 @@ V Supabase SQL Editoru spusť v tomto pořadí:
 2. `supabase/migrations/202611010001_seasons_and_versions.sql`
 3. `supabase/migrations/202611010002_sms_rules.sql`
 4. `supabase/migrations/202611020001_easter_games.sql`
-5. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
+5. `supabase/migrations/202611040001_game_guests_and_reveals.sql`
+6. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
 
-První čtyři migrace jsou obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
+Prvních pět migrací je obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
 
 ~~~sh
 npm run dev
@@ -193,7 +214,7 @@ npm test
 npm run build
 ~~~
 
-Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všechny čtyři migrace a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
+Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všech pět migrací a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
 
 - [Vite na Vercelu](https://vercel.com/docs/frameworks/frontend/vite)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)

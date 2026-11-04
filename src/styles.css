@@ -288,3 +288,15 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
   .game-question-editor { padding: 16px; }
   .games-buttons > button { white-space: normal; }
 }
+
+.guest-admin { margin: 24px 0; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: #eeeee3; }
+.guest-admin > summary { font-weight: 600; cursor: pointer; }
+.guest-admin-row { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d0d8c7; }
+.game-remove { margin-top: 28px; padding: 22px; border: 1px solid #d8b9a9; border-radius: 8px; }
+.guest-questionnaire { margin: 24px 0; padding: 24px; border: 1px solid #cbd5c3; border-radius: 8px; background: #fffdf8; }
+.guest-questionnaire h3 { font-size: 1.4rem; }
+.guest-questionnaire legend { font-size: 1.2rem; font-weight: 600; margin: 16px 0; }
+.guest-profile-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 12px; }
+.guest-profile-options .game-choice { margin-bottom: 0; }
+.guest-questionnaire small { display: block; }
+.guest-title { font-family: Georgia,serif; font-size: 1.5rem; color: var(--green); }

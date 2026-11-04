@@ -1,4 +1,4 @@
-export const GAME_STATES = { draft: 'Rozpracovaná', scheduled: 'Naplánovaná', active: 'Aktivní', archived: 'Ukončená' };
+export const GAME_STATES = { draft: 'Rozpracovaná', scheduled: 'Naplánovaná', active: 'Aktivní', archived: 'Ukončená', cancelled: 'Zrušená' };
 
 export function formatGameDate(value) {
   return value ? new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'do spuštění další hry';

@@ -10,7 +10,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test test/santa.test.js test/seasons.test.js test/render.test.js test/sms.test.js test/admin-interaction.test.js test/games.test.js test/games-interaction.test.js"
+    "test": "node --test test/santa.test.js test/seasons.test.js test/render.test.js test/sms.test.js test/admin-interaction.test.js test/games.test.js test/games-interaction.test.js test/game-extras.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",

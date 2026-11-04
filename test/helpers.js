@@ -6,7 +6,7 @@ import { createHandler } from '../api/santa.js';
 import { createGamesHandler } from '../api/games.js';
 import { normalizeName } from '../shared/questionnaire.js';
 
-export async function createDatabase({ legacySetup, history = true } = {}) {
+export async function createDatabase({ legacySetup, history = true, beforeGameExtension } = {}) {
   const engine = new PGlite();
   await engine.exec('create role anon; create role authenticated; create role service_role bypassrls; grant usage on schema public to anon, authenticated, service_role;');
   await engine.exec(await readFile(new URL('../supabase/migrations/202610260001_santa.sql', import.meta.url), 'utf8'));
@@ -14,6 +14,8 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
   await engine.exec(await readFile(new URL('../supabase/migrations/202611010001_seasons_and_versions.sql', import.meta.url), 'utf8'));
   await engine.exec(await readFile(new URL('../supabase/migrations/202611010002_sms_rules.sql', import.meta.url), 'utf8'));
   await engine.exec(await readFile(new URL('../supabase/migrations/202611020001_easter_games.sql', import.meta.url), 'utf8'));
+  if(beforeGameExtension)await beforeGameExtension(engine);
+  await engine.exec(await readFile(new URL('../supabase/migrations/202611040001_game_guests_and_reveals.sql', import.meta.url), 'utf8'));
   if (history) {
     const people = [];
     for (const name of familyNames) {
@@ -30,6 +32,9 @@ export async function createDatabase({ legacySetup, history = true } = {}) {
     engine,
     async rpc(name, args = {}) {
       const calls = {
+        santa_games_remove: ['select public.santa_games_remove($1::integer,$2::uuid,$3::bigint) as data',[args.input_year,args.input_id,args.input_revision]],
+        santa_games_add_guest: ['select public.santa_games_add_guest($1::integer,$2::text,$3::text) as data',[args.input_year,args.input_name,args.input_name_key]],
+        santa_games_guest_profile: ['select public.santa_games_guest_profile($1::integer,$2::uuid,$3::jsonb,$4::uuid) as data',[args.input_year,args.input_id,JSON.stringify(args.input_profile),args.input_request]],
         santa_games_save: ['select public.santa_games_save($1::integer,$2::jsonb) as data', [args.input_year,JSON.stringify(args.input_game)]],
         santa_games_admin: ['select public.santa_games_admin($1::integer,$2::uuid) as data', [args.input_year,args.input_id ?? null]],
         santa_games_public: ['select public.santa_games_public($1::integer,$2::uuid,$3::uuid) as data', [args.input_year,args.input_game ?? null,args.input_participant ?? null]],

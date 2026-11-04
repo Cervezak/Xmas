@@ -94,7 +94,7 @@ test('admin updates keep a single participant list, rules editor and SMS panel a
   };
   try {
     const { createRoot } = await import('react-dom/client');
-    vite = await createServer({ configFile: false, root: process.cwd(), plugins: [react()], server: { middlewareMode: true, hmr: false }, appType: 'custom' });
+    vite = await createServer({ configFile: false, root: process.cwd(), plugins: [react()], server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
     const AdminApp = (await vite.ssrLoadModule('/src/AdminApp.jsx')).default;
     root = createRoot(document.getElementById('root'));
     await act(async () => { root.render(React.createElement(React.StrictMode, null, React.createElement(AdminApp))); });

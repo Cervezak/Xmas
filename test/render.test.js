@@ -19,7 +19,7 @@ before(async () => {
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: {
     getItem: (key) => entries.get(key) ?? null, setItem: (key, value) => entries.set(key, value), removeItem: (key) => entries.delete(key),
   } });
-  vite = await createServer({ configFile: false, root: process.cwd(), plugins: [react()], server: { middlewareMode: true, hmr: false }, appType: 'custom' });
+  vite = await createServer({ configFile: false, root: process.cwd(), plugins: [react()], server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
   Participant = (await vite.ssrLoadModule('/src/ParticipantApp.jsx')).SeasonParticipantApp;
   DrawPanel = (await vite.ssrLoadModule('/src/DrawPanel.jsx')).default;
   SeasonControls = (await vite.ssrLoadModule('/src/SeasonControls.jsx')).default;
