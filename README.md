@@ -48,7 +48,7 @@ Na hlavní stránce je část **Vánoční záhady** i při uzavřených přihl�
 
 Jeden úplný výběr odpovědí a kliknutí na **Ověřit odpovědi** je jeden pokus. Chybný pokus dovolí další hraní. Ukládá se nejlepší počet správných odpovědí dané hry, nikoli součet za opakované pokusy. Úplně správné řešení uloží konkrétní výběr a další změny pro toto jméno zablokuje. Opakované načtení ani opakované doručení stejného požadavku pokus nepřidá.
 
-Počítadla u jmen sčítají pokusy, nejlepší výsledky a vyřešené hry celého ročníku. V **archivu** jsou termíny od–do, zadání, řešení, vlastní uložený výsledek a jména řešitelů s jejich výsledky. Ukončenou hru už nelze řešit. Archiv na hlavní stránce patří aktivnímu ročníku, starší ročníky zůstávají v administraci.
+U jmen se veřejně zobrazuje pouze počet vyřešených her celého ročníku. Počty pokusů a správných odpovědí jsou dostupné jen v administraci u jednotlivých her; veřejné API je nevydává. V **archivu** jsou termíny od–do, zadání, řešení, vlastní uložené odpovědi a jména řešitelů se stavem vyřešení. Ukončenou hru už nelze řešit. Archiv na hlavní stránce patří aktivnímu ročníku, starší ročníky zůstávají v administraci.
 
 Rozhoduje čas serveru, ne telefonu. Veřejná stránka obnovuje stav při návratu do okna a přibližně každých 30 sekund; na hranici termínu může být obrázek ještě chvíli z minulé hry, ale server už další pokus nepřijme. Tlačítko **Obnovit hry** načte aktuální stav hned. Není potřeba cron nebo nové nasazení ke každé hře.
 

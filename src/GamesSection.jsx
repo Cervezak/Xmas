@@ -22,7 +22,6 @@ export function GamePlay({game,personId,onAttempt,submitting}) {
     {!personId && <p className="notice">Pro hraní nebo zobrazení svého výsledku nejdřív vyber jméno nahoře.</p>}
     {ended && <p className="notice">Hra skončila. Můžeš si prohlédnout řešení a výsledky, další pokusy už nejsou možné.</p>}
     {solved && <p className="notice" role="status">Správně vyřešeno! Tvoje odpovědi jsou uložené a uzamčené.</p>}
-    {game.progress && <p className="game-score">Pokusy: <strong>{game.progress.attempts}</strong> · nejlepší výsledek: <strong>{game.progress.bestCorrect} / {game.questions.length}</strong></p>}
     {ended && game.progress && !solved && <p className="muted">Označené možnosti jsou z tvého posledního pokusu. Správné řešení je označené zvlášť.</p>}
     <form onSubmit={submit}>
       {game.questions.map((question,index)=><fieldset className="game-choices" disabled={readOnly || submitting} key={index}>
@@ -35,8 +34,8 @@ export function GamePlay({game,personId,onAttempt,submitting}) {
       {!ended && !solved && personId && <button className="primary" disabled={submitting || answers.some((answer)=>answer<0)}>{submitting?'Ověřuji…':'Ověřit odpovědi'}</button>}
     </form>
     {game.revealText && <div className="game-point"><h4>Jak to bylo doopravdy</h4><p className="game-story">{game.revealText}</p></div>}
-    <details className="game-results"><summary>Kdo tuto hru řešil ({game.players.length})</summary>
-      {game.players.length===0?<p className="muted">Zatím žádné pokusy.</p>:<div className="history-table-wrap"><table className="history-table"><thead><tr><th>Jméno</th><th>Pokusy</th><th>Nejlepší výsledek</th><th>Vyřešeno</th></tr></thead><tbody>{game.players.map((player,index)=><tr key={index}><td>{player.name}</td><td>{player.attempts}</td><td>{player.bestCorrect} / {game.questions.length}</td><td>{player.solved?'Ano':'Ne'}</td></tr>)}</tbody></table></div>}
+    <details className="game-results"><summary>Kdo tuto hru řešil</summary>
+      {game.players.length===0?<p className="muted">Tuto hru zatím nikdo neřešil.</p>:<div className="history-table-wrap"><table className="history-table"><thead><tr><th>Jméno</th><th>Vyřešeno</th></tr></thead><tbody>{game.players.map((player,index)=><tr key={index}><td>{player.name}</td><td>{player.solved?'Ano':'Ne'}</td></tr>)}</tbody></table></div>}
     </details>
   </article>;
 }
@@ -81,7 +80,7 @@ export default function GamesSection({year}) {
       const result=await gamesApi('attempt',{year,gameId:game.id,participantId:personId,answers,requestId,expectedRevision:game.revision});
       if(live.current && token===sequence.current){
         setView({data:result,personId,gameId});
-        setFeedback(result.game.progress?.solved?'Všechno správně! 🎄':'Tento pokus: '+result.outcome.correctCount+' / '+result.game.questions.length+' správně. Můžeš zkusit další pokus.');
+        setFeedback(result.game.progress?.solved?'Všechno správně! 🎄':'Ještě to není ono. Zkus odpovědi upravit.');
       }
       return true;
     }catch(failure){if(live.current)setError(failure.message);return false;}
@@ -95,10 +94,10 @@ export default function GamesSection({year}) {
     {!data && loading && <p role="status">Načítám rodinné záhady…</p>}
     {data && <>
       {data.names.length===0?<p className="muted">Jména se tu objeví po losování tohoto ročníku.</p>:<div className="game-roster" aria-label="Vyber své jméno">{data.names.map((person)=><button className="game-person" type="button" key={person.id} aria-pressed={personId===person.id} disabled={submitting} onClick={()=>{setPersonId(person.id);setFeedback('');setError('');}}>
-        <strong>{person.name}</strong><span>{person.attempts} pokusů · {person.correctAnswers} správných odpovědí · {person.solvedGames} vyřešených her</span>
+        <strong>{person.name}</strong><span>Vyřešené hry: {person.solvedGames}</span>
       </button>)}</div>}
       {selected && <p className="game-selected" role="status">Hraješ jako <strong>{selected.name}</strong>.</p>}
-      {data.names.length>0 && <p className="muted">Počítadla u jmen jsou za celý ročník. Správné odpovědi se počítají podle nejlepšího výsledku každé hry.</p>}
+      {data.names.length>0 && <p className="muted">U každého jména vidíš počet vyřešených her za celý ročník.</p>}
       <label htmlFor={'game-archive-'+year}>Aktuální hra a archiv</label>
       <select id={'game-archive-'+year} disabled={submitting} value={gameId ?? ''} onChange={(event)=>{setGameId(event.target.value || null);setFeedback('');setError('');}}>
         <option value="">Aktuální hra</option>{data.games.filter((item)=>item.status==='archived').map((item)=><option key={item.id} value={item.id}>{item.title} · {formatGameDate(item.startsAt)} → {formatGameDate(item.endsAt)}</option>)}

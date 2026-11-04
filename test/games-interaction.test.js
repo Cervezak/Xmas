@@ -73,8 +73,10 @@ after(async()=>{
 test('public gameplay records wrong attempts, restores a solved name after reload and disables all further editing',async()=>{
   await mount(GamesSection,{year:2026});await choosePerson();
   await chooseAnswers([0,0,0]);await click('Ověřit odpovědi');
-  await until(()=>dom.window.document.querySelector('.game-score')?.textContent.includes('Pokusy: 1'));
-  assert.ok(dom.window.document.body.textContent.includes('1 / 3 správně'));
+  await until(()=>dom.window.document.body.textContent.includes('Ještě to není ono.'));
+  assert.equal(dom.window.document.querySelector('.game-score'),null);
+  assert.ok(!dom.window.document.body.textContent.includes('1 / 3 správně'));
+  assert.ok([...dom.window.document.querySelectorAll('.game-person span')].every((span)=>/^Vyřešené hry: \d+$/.test(span.textContent)));
   assert.equal(dom.window.document.querySelector('.game-point'),null);
   await chooseAnswers([1,0,1]);await click('Ověřit odpovědi');
   await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
@@ -83,7 +85,8 @@ test('public gameplay records wrong attempts, restores a solved name after reloa
   assert.equal([...dom.window.document.querySelectorAll('button')].some((button)=>button.textContent==='Ověřit odpovědi'),false);
   await mount(GamesSection,{year:2026});await choosePerson();
   await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
-  assert.ok(dom.window.document.querySelector('.game-score').textContent.includes('Pokusy: 2'));
+  assert.equal(dom.window.document.querySelector('.game-score'),null);
+  assert.ok(dom.window.document.querySelector('.game-person span').textContent.includes('Vyřešené hry: 1'));
   assert.deepEqual([...dom.window.document.querySelectorAll('.game-choices')].map((field)=>[...field.querySelectorAll('input')].findIndex((radio)=>radio.checked)),[1,0,1]);
 });
 
@@ -101,6 +104,7 @@ test('focus refresh switches the active game and the archive shows dates, solver
   assert.ok(dom.window.document.querySelector('.game-play').textContent.includes('Hra skončila.'));
   assert.ok(dom.window.document.querySelector('.game-play > .muted').textContent.includes('→'));
   assert.ok(dom.window.document.querySelector('.game-results').textContent.includes('Herní Adam'));
+  assert.deepEqual([...dom.window.document.querySelectorAll('.game-results th')].map((cell)=>cell.textContent),['Jméno','Vyřešeno']);
   assert.ok([...dom.window.document.querySelectorAll('.game-choices')].every((field)=>field.disabled));
   const log=await app.database.engine.query('select count(*)::integer as count from public.santa_game_attempts where game_id=$1',[story.id]);
   assert.equal(log.rows[0].count,2);
@@ -160,4 +164,13 @@ test('admin editor uploads an image, saves a private draft, previews it and sche
   assert.deepEqual(stored.body.selectedGame.solutions,[0]);
   const publicData=await app.games('list',{year:2026});
   assert.ok(!JSON.stringify(publicData.body).includes('Nový obrázek z editoru'));
+  const historyRow=[...dom.window.document.querySelectorAll('.game-list-row')].find((row)=>row.querySelector('strong').textContent==='UI historka');
+  await act(async()=>historyRow.querySelector('button').click());
+  await until(()=>dom.window.document.getElementById('game-title')?.value==='UI historka');
+  const results=dom.window.document.querySelector('.game-editor table');
+  assert.ok(results.textContent.includes('Pokusy'));
+  assert.ok(results.textContent.includes('Nejlepší výsledek'));
+  const cells=results.querySelectorAll('tbody tr:first-child td');
+  assert.equal(cells[1].textContent,'2');
+  assert.equal(cells[2].textContent,'3 / 3');
 });

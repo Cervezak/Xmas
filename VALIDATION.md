@@ -1,8 +1,9 @@
 # Ověření ročníků a verzí losování
 
-Ověřováno 2. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
+Plná sada ověřena 2. 11. 2026, poslední cílená kontrola 4. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
 
-- Automatické testy: **43 prošlo, 0 selhalo**.
+- Plná sada 2. 11.: **43 prošlo, 0 selhalo**.
+- Kontrola 4. 11.: všech 12 herních testů a produkční build prošly. Veřejné rozhraní ukazuje jen počet vyřešených her; podrobné počty pokusů a správných odpovědí nevydává ani veřejné API. Ověřeno u seznamu jmen, průběhu hry, odpovědi na pokus, obnovení stránky a archivu. Administrátorské API i tabulka výsledků nadále obsahují skutečné počty pokusů a nejlepší počet správných odpovědí.
 - Dvanáct nových serverových a interakčních testů ověřuje hry: administrátorské oprávnění, zamezení úniku konceptů a budoucích obrázků, skryté řešení aktivní hry, český čas a přechody letního času, ochranu zastaralých úprav, uzamčení po prvním pokusu, nejlepší skóre bez opakovaného sčítání, souběžné opakované požadavky, trvalé správné odpovědi po obnovení a odmítnutí pozdních pokusů.
 - Interakční herní testy používají skutečnou API funkci s dočasnou PostgreSQL databází a smyšlenými jmény. Ověřují výběr jména, chybný i správný pokus, obnovení stránky, přepnutí aktivní hry při návratu do okna, archiv s termíny a řešiteli a editor obrázkové hry od konceptu po zveřejnění. jsdom nedekóduje obrázky a nekreslí canvas, proto jsou v testu nahrazené tyto dvě browserové operace; ukládání výsledného obrázku a validace přes API jsou skutečné. Vizuální kvalita komprese není tímto ověřena.
 - Rozšířený interakční test administrace ověřuje jediný viditelný panel, přepínání záložek kliknutím i klávesnicí, trvale dostupný výběr ročníku, zachování rozepsaných pravidel mezi záložkami, jejich oddělení při změně roku a skrytí tajných SMS i výsledků při odchodu. Ověřuje také přelosování, uzamčení a načtení aktuálních SMS při přechodu z archivu.

@@ -11,9 +11,18 @@ const makeGame = (overrides={}) => ({id:randomUUID(),revision:0,kind:'story',tit
   questions:[0,1,2].map((index)=>({label:'Kdo je osoba '+(index+1)+'?',options:['Osoba A','Osoba B','Osoba C']})),
   solutions:[0,1,2],revealText:'Neveřejná pointa',startsAt:future(30),published:true,imageData:null,...overrides});
 const save = (game) => app.games('admin-save',{year:2026,game},true);
-const read = (data={}) => app.games('list',{year:2026,...data});
-const attempt = (answers,requestId=randomUUID(),gameId=story.id,participantId=roster.participants[0].id) =>
-  app.games('attempt',{year:2026,gameId,participantId,answers,requestId,expectedRevision:gameId===image?.id?image.revision:story.revision});
+const assertPublicStatsHidden = (response) => {
+  if(response.status===200)assert.doesNotMatch(JSON.stringify(response.body),/"(?:attempts|correctAnswers|bestCorrect|correctCount)":/);
+  return response;
+};
+const read = async(data={}) => assertPublicStatsHidden(await app.games('list',{year:2026,...data}));
+const attempt = async(answers,requestId=randomUUID(),gameId=story.id,participantId=roster.participants[0].id) =>
+  assertPublicStatsHidden(await app.games('attempt',{year:2026,gameId,participantId,answers,requestId,expectedRevision:gameId===image?.id?image.revision:story.revision}));
+const adminProgress = async(gameId=story.id) => {
+  const result=await app.games('admin-get',{year:2026,gameId},true);
+  assert.equal(result.status,200);
+  return result.body.results.find((player)=>player.participantId===roster.participants[0].id);
+};
 before(async()=>{
   app=await createTestApp();
   const enrolled=await app.enroll(['Herní Elf A','Herní Elf B','Herní Elf C']);
@@ -69,7 +78,7 @@ test('drafts and future stories/images never appear in public payloads, and opti
   for(const forbidden of ['Soukromý koncept','Naplánovaná tajná historka','Tajný obrázek','Neveřejná pointa',png])
     assert.ok(!JSON.stringify(listing.body).includes(forbidden));
   assert.equal((await read({gameId:story.id})).status,409);
-  assert.ok(listing.body.names.every((name)=>Object.keys(name).sort().join(',')==='attempts,correctAnswers,id,name,solvedGames'));
+  assert.ok(listing.body.names.every((name)=>Object.keys(name).sort().join(',')==='id,name,solvedGames'));
 });
 
 test('server time selects the active game without exposing answers or family draw details',async()=>{
@@ -93,16 +102,17 @@ test('server time selects the active game without exposing answers or family dra
 test('one submission counts once, best correct answers do not accumulate, and first play permanently locks content',async()=>{
   const first=await attempt([0,0,0]);
   assert.equal(first.status,200);
-  assert.equal(first.body.outcome.correctCount,1);
-  assert.equal(first.body.game.progress.attempts,1);
-  assert.equal(first.body.game.progress.bestCorrect,1);
+  const firstStats=await adminProgress();
+  assert.equal(firstStats.attempts,1);
+  assert.equal(firstStats.bestCorrect,1);
   assert.equal(first.body.game.solutions,null);
   const second=await attempt([2,1,2]);
   assert.equal(second.status,200);
-  assert.equal(second.body.game.progress.attempts,2);
-  assert.equal(second.body.game.progress.bestCorrect,2);
+  const secondStats=await adminProgress();
+  assert.equal(secondStats.attempts,2);
+  assert.equal(secondStats.bestCorrect,2);
   const player=second.body.names.find((name)=>name.id===roster.participants[0].id);
-  assert.equal(player.correctAnswers,2);
+  assert.equal(player.solvedGames,0);
   const current=await app.games('admin-get',{year:2026,gameId:story.id},true);
   assert.ok(current.body.selectedGame.lockedAt);
   assert.equal(current.body.results[0].attempts,2);
@@ -115,8 +125,10 @@ test('concurrent retries are idempotent and reusing the request ID with differen
   assert.ok(responses.every((response)=>response.status===200));
   assert.deepEqual(responses.map((response)=>response.body.outcome.duplicate).sort(),[false,true]);
   const fresh=await read({gameId:story.id,participantId:roster.participants[0].id});
-  assert.equal(fresh.body.game.progress.attempts,3);
-  assert.equal(fresh.body.game.progress.bestCorrect,2);
+  assert.equal(fresh.status,200);
+  const stats=await adminProgress();
+  assert.equal(stats.attempts,3);
+  assert.equal(stats.bestCorrect,2);
   assert.equal((await attempt([0,1,2],id)).status,409);
 });
 
@@ -124,8 +136,9 @@ test('full success persists selected answers across reloads and prevents all sub
   solvedRequest=randomUUID();
   const success=await attempt([0,1,2],solvedRequest);
   assert.equal(success.status,200);
-  assert.equal(success.body.game.progress.attempts,4);
-  assert.equal(success.body.game.progress.bestCorrect,3);
+  const stats=await adminProgress();
+  assert.equal(stats.attempts,4);
+  assert.equal(stats.bestCorrect,3);
   assert.equal(success.body.game.progress.solved,true);
   assert.deepEqual(success.body.game.progress.answers,[0,1,2]);
   assert.deepEqual(success.body.game.solutions,[0,1,2]);
@@ -156,7 +169,8 @@ test('the next game archives the preceding one with dates and named results, and
   assert.ok(new Date(archive.body.game.startsAt)<new Date(archive.body.game.endsAt));
   assert.deepEqual(archive.body.game.solutions,[0,1,2]);
   assert.equal(archive.body.game.players.length,1);
-  assert.equal(archive.body.game.players[0].attempts,4);
+  assert.deepEqual(Object.keys(archive.body.game.players[0]).sort(),['name','solved']);
+  assert.equal((await adminProgress()).attempts,4);
   assert.equal(archive.body.game.progress,null);
   const retry=await attempt([0,1,2],solvedRequest);
   assert.equal(retry.status,200);
@@ -165,8 +179,9 @@ test('the next game archives the preceding one with dates and named results, and
   assert.equal(imageSolved.status,200);
   assert.equal(imageSolved.body.game.progress.solved,true);
   const player=imageSolved.body.names.find((name)=>name.id===roster.participants[0].id);
-  assert.equal(player.correctAnswers,4);
-  assert.equal(player.attempts,5);
+  const storyStats=await adminProgress(story.id),imageStats=await adminProgress(image.id);
+  assert.equal(storyStats.bestCorrect+imageStats.bestCorrect,4);
+  assert.equal(storyStats.attempts+imageStats.attempts,5);
   assert.equal(player.solvedGames,2);
 });
 

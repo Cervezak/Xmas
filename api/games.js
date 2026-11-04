@@ -111,7 +111,18 @@ export function createGamesHandler({ environment = process.env, database } = {})
         outcome = await rpc('santa_games_attempt',{input_year:input.year,input_game:input.gameId,input_participant:input.participantId,input_answers:input.answers,input_request:input.requestId,input_revision:input.expectedRevision});
       }
       const result = await rpc('santa_games_public',{input_year:input.year,input_game:input.gameId ?? null,input_participant:input.participantId ?? null});
-      send(200,{...result,...(outcome ? {outcome} : {})});
+      send(200,{
+        ...result,
+        names:result.names.map(({id,name,solvedGames})=>({id,name,solvedGames})),
+        game:result.game ? {
+          ...result.game,
+          progress:result.game.progress ? {
+            solved:result.game.progress.solved,answers:result.game.progress.answers,solvedAt:result.game.progress.solvedAt,
+          } : null,
+          players:result.game.players.map(({name,solved})=>({name,solved})),
+        } : null,
+        ...(outcome ? {outcome:{duplicate:outcome.duplicate,alreadySolved:outcome.alreadySolved}} : {}),
+      });
     } catch(error) {
       if (error.status === 429) response.setHeader('Retry-After','900');
       send(error.status ?? 500,{error:error.status ? error.message : 'Hry se na chvíli zadrhly. Zkus to znovu.'});
