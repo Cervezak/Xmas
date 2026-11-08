@@ -48,6 +48,9 @@ test('closed year renders a closed-registration page rather than an editable for
   entries.set('santa-draft-2026', JSON.stringify({ year: 2026, name: 'Rozpracovaný Elf', named: true }));
   const html = renderToStaticMarkup(React.createElement(Participant, { event: { year: 2026, registrationOpen: false }, onRefresh() {} }));
   assert.ok(html.includes('Santa už rozdal úkoly.'));
+  assert.ok(html.indexOf('Vánoční záhady') < html.indexOf('Santa už rozdal úkoly.'));
+  assert.equal((html.match(/<main[ >]/g) || []).length,1);
+  assert.ok(html.includes('<h1 id="family-games-heading"'));
   assert.ok(!html.includes('id="santa-name"'));
   assert.ok(!html.includes('id="phone"'));
   assert.ok(!html.includes('Upravit'));
@@ -59,6 +62,8 @@ test('existing personal confirmation remains visible after registration closes',
   const html = renderToStaticMarkup(React.createElement(Participant, { event: { year: 2026, registrationOpen: false }, onRefresh() {} }));
   assert.ok(html.includes('Potvrzený Elf'));
   assert.ok(html.includes('Testovací titul'));
+  assert.ok(html.indexOf('Vánoční záhady') < html.indexOf('Jsi v tom'));
+  assert.equal((html.match(/<main[ >]/g) || []).length,1);
   assert.ok(!html.includes('id="santa-name"'));
 });
 

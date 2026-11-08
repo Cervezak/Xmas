@@ -69,11 +69,12 @@ export function SeasonParticipantApp({ event, eventError, onRefresh }) {
   const questionnaireHeadingRef = useRef(null);
   const reviewRef = useRef(null);
   const resultRef = useRef(null);
+  const receiptSubmittedRef = useRef(false);
   const previousStepRef = useRef({ named, reviewing });
 
   useEffect(() => { if (!receipt) saveSeasonSession('draft', year, { name, named, statements, timing, idempotencyKey }); }, [name, named, statements, timing, idempotencyKey, receipt, year]);
   useEffect(() => { if (reviewing) reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [reviewing]);
-  useEffect(() => { if (receipt) resultRef.current?.focus(); }, [receipt]);
+  useEffect(() => { if (receipt && receiptSubmittedRef.current) { receiptSubmittedRef.current=false; resultRef.current?.focus(); } }, [receipt]);
   useEffect(() => {
     const previousStep = previousStepRef.current;
     const target = previousStep.named && !named
@@ -86,6 +87,7 @@ export function SeasonParticipantApp({ event, eventError, onRefresh }) {
     previousStepRef.current = { named, reviewing };
   }, [named, reviewing]);
 
+  const gamesFirst = !event.registrationOpen || Boolean(receipt);
   const updateName = (value) => { setName(value); setReviewing(false); setConfirmed(false); };
   const goBack = () => {
     setError('');
@@ -112,21 +114,23 @@ export function SeasonParticipantApp({ event, eventError, onRefresh }) {
     try {
       const result = await api('submit', { year, name, phone, statements, timing, confirmed, idempotencyKey, website });
       saveSeasonSession('receipt', year, result); saveSeasonSession('draft', year, null);
-      setReceipt(result); setPhone('');
+      receiptSubmittedRef.current=true; setReceipt(result); setPhone('');
     } catch (failure) { setError(failure.message); }
     finally { setBusy(false); }
   };
 
   return <div className="site-shell"><Header year={year}>{(named || receipt) && <NameBadge name={receipt?.name || name} onSave={updateName} locked={Boolean(receipt) || busy || !event.registrationOpen} />}</Header>
     {eventError && <p className="notice" role="status">Aktuální stav ročníku se nepodařilo ověřit. {eventError}</p>}
-    {receipt ? <main className="success-page" ref={resultRef} tabIndex={-1}>
+    <main>
+    {gamesFirst && <GamesSection key={'games:'+year} year={year} primary />}
+    {receipt ? <section className="success-page" ref={resultRef} tabIndex={-1}>
       <div className="success-seal" aria-hidden="true">✧</div><p className="eyebrow">RAZÍTKO ZE SEVERNÍHO PÓLU</p>
-      <h1>Jsi v tom, <em>{receipt.name}!</em></h1><p className="lead">Přihláška pro Vánoce {year} bezpečně přistála v Santově dílně.</p>
+      <h2>Jsi v tom, <em>{receipt.name}!</em></h2><p className="lead">Přihláška pro Vánoce {year} bezpečně přistála v Santově dílně.</p>
       <div className="elf-certificate"><span className="tiny-stars" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</span><p>ODE DNEŠKA NOSÍŠ ČESTNÝ ELFÍ TITUL</p><h2>{receipt.elfTitle}</h2><span className="certificate-rule" /><small>Uděleno za mimořádné zásluhy o vánoční atmosféru.</small></div>
       <div className="sms-note"><span aria-hidden="true">✉</span><p><strong>A koho letos potěšíš?</strong><br />To zůstává ještě chvilku tajemstvím. Po losování ti přijde SMS.</p></div>
       <p className="muted">Odeslání je definitivní. Potřebuješ něco opravit? Ozvi se organizátorovi.</p>
       <button className="text-button" onClick={() => { saveSeasonSession('receipt', year, null); saveSeasonSession('draft', year, null); setReceipt(null); setName(''); setNamed(false); setStatements([]); setTiming(''); setReviewing(false); setConfirmed(false); setIdempotencyKey(crypto.randomUUID()); }}>Vyplnit za dalšího člověka <span aria-hidden="true">→</span></button>
-    </main> : !event.registrationOpen ? <main className="status-page"><p className="eyebrow">VÁNOCE {year}</p><h1>Santa už rozdal úkoly.</h1><p className="lead">Přihlášky pro tento ročník jsou uzavřené. Pokud už jsi přihlášený/á, informace přijde od organizátora.</p><button className="secondary" onClick={onRefresh}>Znovu načíst stav</button></main> : <main>
+    </section> : !event.registrationOpen ? <section className="status-page registration-closed"><p className="eyebrow">VÁNOCE {year}</p><h2>Santa už rozdal úkoly.</h2><p className="lead">Přihlášky pro tento ročník jsou uzavřené. Pokud už jsi přihlášený/á, informace přijde od organizátora.</p><button className="secondary" onClick={onRefresh}>Znovu načíst stav</button></section> : <div className="registration-form">
       <section className="hero"><div className="hero-copy"><p className="eyebrow"><span /> TAJNÉ NADĚLOVÁNÍ, OPRAVDOVÁ RADOST</p><h1>Malé tajemství.<br />Velká <em>radost.</em></h1><p className="lead">Někdo chystá překvapení pro tebe.<br />A ty zase pro někoho dalšího.</p><p className="hero-caption">Pár odpovědí, trocha vánočního kouzla.<br />Zbytek nech na Santovi.</p></div><div className="hero-art"><Illustration /><span className="art-caption">PŠŠŠT. TADY SE CHYSTAJÍ PŘEKVAPENÍ.</span></div></section>
       {!named ? <section className="welcome-card"><div><p className="eyebrow">01 / PRVNÍ ZASTÁVKA</p><h2>Jak ti Santa říká?</h2><p>Ať víme, komu rezervovat místo na saních.</p></div><form onSubmit={(event) => { event.preventDefault(); if (name.trim().length >= 2) { setName(name.trim()); setNamed(true); } }}><label htmlFor="santa-name">Tvoje jméno nebo přezdívka</label><div className="input-with-button"><input ref={nameInputRef} id="santa-name" name="name" placeholder="Třeba David" autoComplete="name" required minLength={2} maxLength={60} value={name} onChange={(event) => setName(event.target.value)} /><button className="primary" type="submit">To jsem já <span aria-hidden="true">→</span></button></div><small>Ideálně tak, aby tě ostatní poznali.</small></form></section> : <>
         <div className="section-divider"><span aria-hidden="true">✧</span></div>
@@ -146,8 +150,9 @@ export function SeasonParticipantApp({ event, eventError, onRefresh }) {
         </section>}
       </>}
       <div className="how-it-works"><span><b>01</b> Představ se</span><span className="step-line" /><span><b>02</b> Ukaž své vánoční já</span><span className="step-line" /><span><b>03</b> Vyhlížej tajnou SMS</span></div>
-    </main>}
-    <GamesSection key={'games:'+year} year={year} />
+    </div>}
+    {!gamesFirst && <GamesSection key={'games:'+year} year={year} />}
+    </main>
     <Footer />
   </div>;
 }

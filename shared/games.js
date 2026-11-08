@@ -5,7 +5,17 @@ export function formatRiddleSolution(solution, separator = ' / ') {
 }
 
 export function formatGameDate(value) {
-  return value ? new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'do spuštění další hry';
+  return value ? new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'termín není stanoven';
+}
+
+export function formatGamePeriod({startsAt,endsAt,status}) {
+  const start=formatGameDate(startsAt);
+  const end=formatGameDate(endsAt);
+  if(status==='draft')return 'Koncept · plánovaný začátek '+start;
+  if(status==='scheduled')return 'Začne '+start+(endsAt?' · skončí '+end:'');
+  if(status==='cancelled')return 'Zrušená hra'+(endsAt?' · zrušena '+end:'');
+  if(status==='archived')return endsAt?'Hrálo se '+start+' – '+end:'Ukončená hra · začátek '+start;
+  return 'Probíhá od '+start+(endsAt?' · do '+end:' · konec zatím není naplánovaný');
 }
 
 export function pragueInput(value) {

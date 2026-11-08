@@ -2,6 +2,20 @@
 
 Česká responzivní React/Vite SPA s ročníky, verzemi losování a neveřejnou administrací. Veřejný formulář vždy patří jedinému aktivnímu roku. Tajná přiřazení jsou dostupná pouze správci, SMS se posílají ručně. Výsledky rodinných her jsou součástí veřejné herní části.
 
+## Přehlednější veřejná herní stránka
+
+Po uzavření přihlášek a u již uloženého potvrzení jsou **Vánoční záhady** hned pod hlavičkou. Oznámení **Santa už rozdal úkoly** nebo vlastní potvrzení přihlášky následuje pod hrami. Při novém odeslání se potvrzení stále přístupně zaměří; samotné načtení již uloženého potvrzení návštěvníka neposouvá od her dolů. Otevřený nový ročník nadále začíná formulářem.
+
+Herní panel má menší mezery, nižší karty jmen, stručnější označení vyřešených her a kompaktní nadpis. Na dostatečně širokém počítači se 12 jmen vejde do dvou řad, na mobilu zůstávají dvě karty vedle sebe. Výběr archivu je na počítači vedle informace o hráči, na mobilu pod ní. Základní velikost písma zůstává 20 px.
+
+Termíny se popisují podle skutečného stavu: **Probíhá od… · konec zatím není naplánovaný**, případně s konkrétním koncem; archiv **Hrálo se… –…**; budoucí hra **Začne…**. Stejné popisy používá administrace. Stačí commit/push a deployment, bez nového SQL.
+
+## Sbalovací editor her
+
+Tato úprava potřebuje jen aktuální kód a nový Vercel deployment, bez dalšího SQL. Editor se objeví až po **Nová hra**, **Otevřít** nebo **Prohlédnout**. Záhlaví s názvem hry slouží k rozbalení a sbalení, uvnitř je také **Sbalit editor**. Po úspěšném uložení konceptu či naplánování se automaticky sbalí, potvrzení uložení zůstává viditelné nad seznamem.
+
+Ruční sbalení nevymaže rozepsané změny; v záhlaví zůstane upozornění na neuložené změny. Při odchodu do jiné administrátorské záložky se editor sbalí a obsah zůstane zachovaný. Změna ročníku nadále vyčistí místní formuláře. Otevření jiné hry nebo vytvoření nové stále vyžaduje potvrzení opuštění neuložených úprav.
+
 ## Více uznávaných odpovědí u hádanek
 
 Pokud už máš předchozí aktualizaci hádanek, spusť v Supabase SQL Editoru pouze nový soubor `supabase/migrations/202611080002_riddle_variants.sql`. Pokud ještě hádanky nemáš, spusť nejprve `202611080001_riddles.sql` a potom tuto aktualizaci. Již aplikované starší migrace znovu nespouštěj. Nakonec odešli aktuální kód přes GitHub Desktop a počkej na úspěšný deployment Vercelu.

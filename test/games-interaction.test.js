@@ -22,8 +22,13 @@ const until=async(predicate)=>{
   while(!predicate()){if(Date.now()>deadline)throw new Error('UI did not reach the expected state: '+dom.window.document.body.textContent.slice(-700));await act(async()=>new Promise((resolve)=>setTimeout(resolve,15)));}
 };
 const click=async(text)=>{
-  const button=[...dom.window.document.querySelectorAll('button')].find((item)=>item.textContent===text && !item.closest('[hidden]'));
+  const button=[...dom.window.document.querySelectorAll('button')].find((item)=>item.textContent===text && !item.closest('[hidden]') && !item.closest('details:not([open])'));
   assert.ok(button,'Missing button: '+text);await act(async()=>button.click());
+};
+const expandEditor=async()=>{
+  const editor=dom.window.document.querySelector('.game-editor');assert.ok(editor);
+  if(!editor.open)await act(async()=>editor.querySelector('.game-editor-summary').click());
+  await until(()=>editor.open);
 };
 const input=async(id,value)=>{
   const element=dom.window.document.getElementById(id);assert.ok(element,'Missing input: '+id);
@@ -77,8 +82,11 @@ test('public gameplay records wrong attempts, restores a solved name after reloa
   await until(()=>dom.window.document.body.textContent.includes('Ještě to není ono.'));
   assert.equal(dom.window.document.querySelector('.game-score'),null);
   assert.ok(!dom.window.document.body.textContent.includes('1 / 3 správně'));
-  assert.ok([...dom.window.document.querySelectorAll('.game-person span')].every((span)=>/^Vyřešené hry: \d+$/.test(span.textContent)));
+  assert.ok([...dom.window.document.querySelectorAll('.game-person span')].every((span)=>/^Vyřešeno: \d+$/.test(span.textContent)));
   assert.equal(dom.window.document.querySelector('.game-point'),null);
+  assert.ok(dom.window.document.querySelector('.game-period').textContent.startsWith('Probíhá od '));
+  assert.ok(dom.window.document.querySelector('.game-period').textContent.includes('konec zatím není naplánovaný'));
+  assert.equal(dom.window.document.querySelector('.game-navigation select').id,'game-archive-2026');
   await chooseAnswers([1,0,1]);await click('Ověřit odpovědi');
   await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
   assert.ok([...dom.window.document.querySelectorAll('.game-choices')].every((field)=>field.disabled));
@@ -87,7 +95,7 @@ test('public gameplay records wrong attempts, restores a solved name after reloa
   await mount(GamesSection,{year:2026});await choosePerson();
   await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
   assert.equal(dom.window.document.querySelector('.game-score'),null);
-  assert.ok(dom.window.document.querySelector('.game-person span').textContent.includes('Vyřešené hry: 1'));
+  assert.ok(dom.window.document.querySelector('.game-person span').textContent.includes('Vyřešeno: 1'));
   assert.deepEqual([...dom.window.document.querySelectorAll('.game-choices')].map((field)=>[...field.querySelectorAll('input')].findIndex((radio)=>radio.checked)),[1,0,1]);
 });
 
@@ -103,7 +111,7 @@ test('focus refresh switches the active game and the archive shows dates, solver
   await input('game-archive-2026',story.id);
   await until(()=>dom.window.document.querySelector('.game-play h3')?.textContent==='UI historka');
   assert.ok(dom.window.document.querySelector('.game-play').textContent.includes('Hra skončila.'));
-  assert.ok(dom.window.document.querySelector('.game-play > .muted').textContent.includes('→'));
+  assert.ok(dom.window.document.querySelector('.game-period').textContent.startsWith('Hrálo se '));
   assert.ok(dom.window.document.querySelector('.game-results').textContent.includes('Herní Adam'));
   assert.deepEqual([...dom.window.document.querySelectorAll('.game-results th')].map((cell)=>cell.textContent),['Jméno','Vyřešeno']);
   assert.ok([...dom.window.document.querySelectorAll('.game-choices')].every((field)=>field.disabled));
@@ -119,10 +127,20 @@ test('admin editor uploads an image, saves a private draft, previews it and sche
   };
   await mount(AdminGames,{year:2026,active:true,request});
   await until(()=>dom.window.document.querySelector('.game-admin-list'));
+  assert.equal(dom.window.document.querySelector('.game-editor'),null);
   await click('Nová hra');
+  await until(()=>dom.window.document.querySelector('.game-editor')?.open);
   await input('game-kind','image');
   await input('game-title','Nový obrázek z editoru');
   await input('game-body','Poznáš tento obrázek?');
+  await click('Sbalit editor');await until(()=>!dom.window.document.querySelector('.game-editor').open);
+  assert.ok(dom.window.document.querySelector('.game-editor-summary').textContent.includes('neuložené změny'));
+  await expandEditor();assert.equal(dom.window.document.getElementById('game-body').value,'Poznáš tento obrázek?');
+  await act(async()=>root.render(React.createElement(AdminGames,{year:2026,active:false,request})));
+  await until(()=>!dom.window.document.querySelector('.game-editor').open);
+  await act(async()=>root.render(React.createElement(AdminGames,{year:2026,active:true,request})));
+  assert.equal(dom.window.document.querySelector('.game-editor').open,false);
+  await expandEditor();assert.equal(dom.window.document.getElementById('game-title').value,'Nový obrázek z editoru');
   await input('game-start',pragueInput(Date.now()+3600000));
   await input('game-question-0','Kdo je na obrázku?');
   const options=dom.window.document.querySelectorAll('.game-option-editor > input');
@@ -160,11 +178,14 @@ test('admin editor uploads an image, saves a private draft, previews it and sche
   await click('Uložit koncept');
   await until(()=>dom.window.document.body.textContent.includes('Koncept je uložený.'));
   assert.ok(!dom.window.document.querySelector('[role="alert"]'));
+  await until(()=>!dom.window.document.querySelector('.game-editor').open);
+  await expandEditor();
   await click('Náhled hry');
   assert.ok(dom.window.document.querySelector('.game-preview').textContent.includes('Sob ✓'));
   assert.equal(dom.window.document.querySelectorAll('.game-preview img').length,2);
   await click('Potvrdit a naplánovat');
   await until(()=>dom.window.document.body.textContent.includes('Hra je uložená a zveřejní se podle termínu.'));
+  await until(()=>!dom.window.document.querySelector('.game-editor').open);
   const listed=await app.games('admin-list',{year:2026},true);
   const created=listed.body.games.find((game)=>game.title==='Nový obrázek z editoru');
   assert.equal(created.status,'scheduled');
@@ -261,6 +282,8 @@ test('admin saves multiline riddle variants and players can solve with an altern
   await input('game-start',pragueInput(Date.now()+3600000));
   await input('game-solution-0','Děda Mirek\nDěda\nMirek\n');
   await click('Uložit koncept');await until(()=>dom.window.document.body.textContent.includes('Koncept je uložený.'));
+  await until(()=>!dom.window.document.querySelector('.game-editor').open);
+  await expandEditor();
   await click('Náhled hry');assert.ok(dom.window.document.querySelector('.game-preview').textContent.includes('Správná odpověď: Děda Mirek / Děda / Mirek'));
   await click('Potvrdit a naplánovat');await until(()=>dom.window.document.body.textContent.includes('Hra je uložená a zveřejní se podle termínu.'));
   const listing=(await app.games('admin-list',{year:2026},true)).body;

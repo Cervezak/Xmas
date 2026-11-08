@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createTestApp,drawRequest } from './helpers.js';
 import { validateGame } from '../api/games.js';
-import { pragueInput,pragueToUtc } from '../shared/games.js';
+import { pragueInput,pragueToUtc,formatGamePeriod } from '../shared/games.js';
 
 let app,roster,story,image,solvedRequest;
 const future = (minutes) => new Date(Date.now()+minutes*60000).toISOString();
@@ -33,6 +33,14 @@ before(async()=>{
 after(async()=>{if(app)await app.close();});
 
 test('Prague scheduling handles summer, winter and ambiguous or nonexistent daylight-saving times',()=>{
+  const startsAt='2026-11-08T21:15:00Z', endsAt='2026-11-13T21:15:00Z';
+  assert.match(formatGamePeriod({startsAt,status:'active'}),/^Probíhá od .*konec zatím není naplánovaný$/);
+  assert.match(formatGamePeriod({startsAt,endsAt,status:'active'}),/^Probíhá od .* · do /);
+  assert.match(formatGamePeriod({startsAt,endsAt,status:'archived'}),/^Hrálo se .* – /);
+  assert.match(formatGamePeriod({startsAt,status:'archived'}),/^Ukončená hra/);
+  assert.match(formatGamePeriod({startsAt,status:'scheduled'}),/^Začne /);
+  assert.match(formatGamePeriod({startsAt,status:'draft'}),/^Koncept/);
+  assert.match(formatGamePeriod({startsAt,endsAt,status:'cancelled'}),/^Zrušená hra/);
   assert.equal(pragueToUtc('2026-12-01T00:00'),'2026-11-30T23:00:00.000Z');
   assert.equal(pragueToUtc('2026-07-01T00:00'),'2026-06-30T22:00:00.000Z');
   assert.equal(pragueInput('2026-11-30T23:00:00.000Z'),'2026-12-01T00:00');

@@ -1,5 +1,5 @@
 import { useEffect,useRef,useState } from 'react';
-import { formatGameDate,pragueInput,pragueToUtc,GAME_STATES,formatRiddleSolution } from '../shared/games.js';
+import { formatGamePeriod,pragueInput,pragueToUtc,formatRiddleSolution } from '../shared/games.js';
 import {STATEMENTS,TIMINGS} from '../shared/questionnaire.js';
 
 const questionsFor = (count) => Array.from({length:count},(_,index)=>({label:count===1?'Kdo nebo co je na obrázku?':'Kdo je osoba '+(index+1)+'?',options:['','']}));
@@ -32,6 +32,7 @@ export default function AdminGames({year,active,request}) {
   const [error,setError]=useState('');
   const [note,setNote]=useState('');
   const [preview,setPreview]=useState(false);
+  const [editorOpen,setEditorOpen]=useState(false);
   const [guestName,setGuestName]=useState('');
   const [removeOpen,setRemoveOpen]=useState(false);
   const [removeConfirmation,setRemoveConfirmation]=useState('');
@@ -44,7 +45,7 @@ export default function AdminGames({year,active,request}) {
       const result=await request(action,{year,...extra});
       if(token!==sequence.current)return false;
       setData(result);
-      if(open && result.selectedGame){setDraft({...result.selectedGame,startsLocal:pragueInput(result.selectedGame.startsAt)});setDirty(false);setPreview(false);setRemoveOpen(false);setRemoveConfirmation('');}
+      if(open && result.selectedGame){setDraft({...result.selectedGame,startsLocal:pragueInput(result.selectedGame.startsAt)});setDirty(false);setPreview(false);setRemoveOpen(false);setRemoveConfirmation('');setEditorOpen(true);}
       return result;
     }catch(failure){if(token===sequence.current)setError(failure.message);return false;}
     finally{if(token===sequence.current)setBusy(false);}
@@ -58,6 +59,7 @@ export default function AdminGames({year,active,request}) {
       .finally(()=>{if(live && token===sequence.current)setBusy(false);});
     return()=>{live=false;};
   },[active,year,request,data]);
+  useEffect(()=>{if(!active)setEditorOpen(false);},[active]);
   const change=(patch)=>{setDraft((old)=>({...old,...patch}));setDirty(true);setNote('');};
   const mayLeave=()=>!dirty || window.confirm('Opustit neuložené úpravy této hry?');
   const meta=data?.games.find((game)=>game.id===draft?.id);
@@ -72,14 +74,14 @@ export default function AdminGames({year,active,request}) {
     try{
       const startsAt=draft.startsAt && pragueInput(draft.startsAt)===draft.startsLocal?draft.startsAt:pragueToUtc(draft.startsLocal);
       const game={...draft,published,startsAt,solutions:draft.kind==='riddle'?draft.solutions.map((answer)=>Array.isArray(answer)?answer.map((variant)=>variant.trim()).filter(Boolean):answer):draft.solutions};
-      if(await operate('admin-save',{game},true))setNote(published?'Hra je uložená a zveřejní se podle termínu.':'Koncept je uložený. Na veřejném webu se nezobrazí.');
+      if(await operate('admin-save',{game},true)){setEditorOpen(false);setNote(published?'Hra je uložená a zveřejní se podle termínu.':'Koncept je uložený. Na veřejném webu se nezobrazí.');}
     }catch(failure){setError(failure.message);}
   };
   const setQuestion=(index,question)=>change({questions:draft.questions.map((old,position)=>position===index?question:old)});
   return <section className="admin-section games-admin">
     <div className="section-toolbar"><div><p className="eyebrow">RODINNÉ ZÁHADY</p><h2>Easter eggy · {year}</h2></div><div className="games-buttons">
       <button type="button" className="secondary" disabled={busy} onClick={()=>operate('admin-list')}>Obnovit hry</button>
-      <button type="button" className="primary" disabled={busy} onClick={()=>{if(mayLeave()){setDraft(freshGame());setDirty(false);setPreview(false);setError('');setNote('');}}}>Nová hra</button></div></div>
+      <button type="button" className="primary" disabled={busy} onClick={()=>{if(mayLeave()){setDraft(freshGame());setDirty(false);setPreview(false);setError('');setNote('');setRemoveOpen(false);setRemoveConfirmation('');setEditorOpen(true);}}}>Nová hra</button></div></div>
     <p className="muted">Čas zadáváš pro Česko. Každá zveřejněná hra poběží do začátku následující. Po prvním pokusu nebo po ukončení jsou zadání a řešení uzamčené.</p>
     {error && <p className="error" role="alert">{error}</p>}{note && <p className="notice" role="status">{note}</p>}
     {!data && busy && <p role="status">Načítám hry…</p>}
@@ -93,11 +95,12 @@ export default function AdminGames({year,active,request}) {
       </article>)}
     </details>}
     {data && <div className="game-admin-list">{data.games.length===0?<p className="empty-state">Zatím tu není žádná hra. Začni tlačítkem Nová hra.</p>:data.games.map((game)=><article key={game.id} className={'game-list-row '+(draft?.id===game.id?'selected':'')}>
-      <div><strong>{game.title}</strong><p>{GAME_STATES[game.status]} · {formatGameDate(game.startsAt)} → {game.published?formatGameDate(game.endsAt):'koncept'}<br />Řešilo: {game.playerCount} · pokusy: {game.attemptCount}</p></div>
+      <div><strong>{game.title}</strong><p>{formatGamePeriod(game)}<br />Řešilo: {game.playerCount} · pokusy: {game.attemptCount}</p></div>
       <button type="button" className="secondary" disabled={busy} onClick={()=>{if(mayLeave())operate('admin-get',{gameId:game.id},true);}}>{game.lockedAt || ['archived','cancelled'].includes(game.status)?'Prohlédnout':'Otevřít'}</button>
     </article>)}</div>}
-    {draft && <div className="game-editor">
-      <div className="section-toolbar"><h3>{draft.revision?'Upravit / prohlédnout hru':'Nová hra'}</h3><button type="button" className="secondary" onClick={()=>setPreview(!preview)}>{preview?'Zpět k editoru':'Náhled hry'}</button></div>
+    {draft && <details className="game-editor" open={editorOpen}>
+      <summary className="game-editor-summary" onClick={(event)=>{event.preventDefault();setEditorOpen((open)=>!open);}}>{draft.revision?'Upravit / prohlédnout hru':'Nová hra'}{draft.title && <span> · {draft.title}</span>}{dirty && <small> · neuložené změny</small>}</summary>
+      <div className="section-toolbar"><h3>Zadání hry</h3><div className="games-buttons"><button type="button" className="secondary" onClick={()=>setPreview(!preview)}>{preview?'Zpět k editoru':'Náhled hry'}</button><button type="button" className="secondary" onClick={()=>setEditorOpen(false)}>Sbalit editor</button></div></div>
       {locked && <p className="notice">Tato hra je uzamčená. Zadání i správné odpovědi zůstávají zachované.</p>}
       <form onSubmit={(event)=>{event.preventDefault();save(true);}}>
         <fieldset className="game-editor-fields" disabled={busy || locked}>
@@ -152,6 +155,6 @@ export default function AdminGames({year,active,request}) {
         </form>}
       </section>}
       {data?.selectedGame?.id===draft.id && <><h3>Kdo hru řešil</h3>{data.results.length===0?<p className="muted">Zatím žádné pokusy.</p>:<div className="history-table-wrap"><table className="history-table"><thead><tr><th>Jméno</th><th>Pokusy</th><th>Nejlepší výsledek</th><th>Vyřešeno</th></tr></thead><tbody>{data.results.map((result)=><tr key={result.participantId}><td>{result.name}</td><td>{result.attempts}</td><td>{result.bestCorrect} / {draft.questions.length}</td><td>{result.solved?'Ano':'Ne'}</td></tr>)}</tbody></table></div>}</>}
-    </div>}
+    </details>}
   </section>;
 }
