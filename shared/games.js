@@ -1,5 +1,9 @@
 export const GAME_STATES = { draft: 'Rozpracovaná', scheduled: 'Naplánovaná', active: 'Aktivní', archived: 'Ukončená', cancelled: 'Zrušená' };
 
+export function formatRiddleSolution(solution, separator = ' / ') {
+  return (Array.isArray(solution) ? solution : [solution]).join(separator);
+}
+
 export function formatGameDate(value) {
   return value ? new Intl.DateTimeFormat('cs-CZ', { timeZone: 'Europe/Prague', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'do spuštění další hry';
 }

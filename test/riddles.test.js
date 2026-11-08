@@ -107,3 +107,81 @@ test('riddle migration preserves existing choice games, revisions and recorded r
     assert.equal(result.data.results[0].attempts,2);assert.equal(result.data.results[0].solved,true);
   }finally{await db.engine.close();}
 });
+
+test('every accepted riddle variant matches independently and a duplicated synonym still counts as one answer',async()=>{
+  const created=await save(make({title:'Poznej vánoční zvuk',solutions:[['zvon','zvonek','zvoneček','zvon']]}));
+  assert.equal(created.status,200);const synonymGame=created.body.selectedGame;
+  await app.database.engine.query("update public.santa_games set starts_at=now()-interval '1 second' where id=$1",[synonymGame.id]);
+  const hidden=await read();assert.equal(hidden.body.game.solutions,null);assert.ok(!JSON.stringify(hidden.body).includes('zvoneček'));
+  const answers=['ZVON','zvonek','ZVONECEK','  Zvoneček  ','zvoneček'.normalize('NFD')];
+  for(const [index,answer] of answers.entries()){
+    const added=await app.games('admin-add-guest',{year:2026,name:'Varianta '+index},true);assert.equal(added.status,200);
+    const person=added.body.guests.find((item)=>item.name==='Varianta '+index);
+    const requestId=randomUUID();
+    const data={year:2026,gameId:synonymGame.id,participantId:person.id,requestId,expectedRevision:synonymGame.revision,answers:[answer]};
+    const solved=await app.games('attempt',data);assert.equal(solved.status,200);assert.equal(solved.body.game.progress.solved,true);
+    assert.deepEqual(solved.body.game.progress.answers,[answer]);assert.deepEqual(solved.body.game.solutions,[['zvon','zvonek','zvoneček','zvon']]);
+    assert.doesNotMatch(JSON.stringify(solved.body),/"(?:attempts|bestCorrect|correctCount)":/);
+    assert.equal((await app.games('attempt',data)).body.outcome.duplicate,true);
+    const stats=(await app.games('admin-get',{year:2026,gameId:synonymGame.id},true)).body.results.find((item)=>item.participantId===person.id);
+    assert.equal(stats.bestCorrect,1);assert.equal(stats.attempts,1);
+  }
+  assert.equal((await save({...synonymGame,solutions:[['sob','jelen']]})).status,409);
+  const future=(await save(make({title:'Po variantách'}))).body.selectedGame;
+  await app.database.engine.query('update public.santa_games set starts_at=now() where id=$1',[future.id]);
+  const archived=await read({gameId:synonymGame.id});assert.equal(archived.body.game.status,'archived');assert.deepEqual(archived.body.game.solutions,synonymGame.solutions);
+});
+
+test('variant lists reject invalid values and require the new SQL capability without affecting single-answer saves',async()=>{
+  const valid=make({published:false,solutions:[[' zvon ',' zvonek ','zvoneček']]});
+  assert.deepEqual(validateGame(valid).solutions,[['zvon','zvonek','zvoneček']]);
+  for(const solution of [[],[null],[0],[[]],[''],[' '],['\u0301'],['a'.repeat(161)],Array(21).fill('zvon'),['zvon','Zvonek\nSob']]){
+    const invalid=make({published:false,solutions:[solution]});assert.throws(()=>validateGame(invalid));
+    assert.equal((await save(invalid)).status,400);
+    const direct=await app.database.rpc('santa_games_save',{input_year:2026,input_game:invalid});assert.equal(direct.error?.message,'SANTA_GAME_INVALID');
+  }
+  const rpc=app.database.rpc;
+  app.database.rpc=async(name,args)=>{
+    const result=await rpc(name,args);
+    if(name==='santa_games_admin' && result.data){const {supportsRiddleVariants,...old}=result.data;return {...result,data:old};}
+    return result;
+  };
+  try{
+    const missing=await save(valid);assert.equal(missing.status,503);assert.match(missing.body.error,/202611080002_riddle_variants/);
+    assert.equal((await save(make({published:false}))).status,200);
+  }finally{app.database.rpc=rpc;}
+});
+
+test('each question accepts its own synonyms while partial best scores and typed answers remain unchanged',async()=>{
+  const created=await save(make({title:'Dvě různé věci',questions:[{label:'První věc'},{label:'Druhá věc'}],solutions:[['zvon','zvonek','zvoneček'],['strom','stromeček']]}));
+  assert.equal(created.status,200);const multi=created.body.selectedGame;
+  await app.database.engine.query('update public.santa_games set starts_at=now() where id=$1',[multi.id]);
+  const send=(answers)=>play(answers,{gameId:multi.id,expectedRevision:multi.revision});
+  const wrong=await send(['strom','zvon']);assert.equal(wrong.body.game.progress.solved,false);assert.equal(wrong.body.game.solutions,null);
+  await send(['ZVONECEK','sob']);
+  await send(['sob','STROMECEK']);
+  const partial=(await app.games('admin-get',{year:2026,gameId:multi.id},true)).body.results[0];assert.equal(partial.bestCorrect,1);assert.equal(partial.attempts,3);
+  const correct=await send(['ZVONEK','strom']);assert.equal(correct.body.game.progress.solved,true);assert.deepEqual(correct.body.game.progress.answers,['ZVONEK','strom']);
+  const reload=await read({gameId:multi.id,participantId:player.id});assert.equal(reload.body.game.progress.solved,true);assert.deepEqual(reload.body.game.progress.answers,['ZVONEK','strom']);
+});
+
+test('variant migration leaves previously locked single-answer riddles and saved attempts intact',async()=>{
+  const gameId=randomUUID(),personId=randomUUID(),requestId=randomUUID();let snapshot;
+  const query=`select jsonb_build_object('game',(select to_jsonb(g) from public.santa_games g where id=$1),
+    'result',(select to_jsonb(r) from public.santa_game_results r where game_id=$1),
+    'attempt',(select to_jsonb(a) from public.santa_game_attempts a where game_id=$1)) as data`;
+  const db=await createDatabase({history:false,beforeRiddleVariants:async(engine)=>{
+    await engine.query("insert into public.santa_game_players(id,year,name,name_key) values($1,2026,'Původní hadač','puvodni hadac')",[personId]);
+    await engine.query("insert into public.santa_games(id,year,kind,title,body,questions,solutions,starts_at,published,locked_at,revision) values($1,2026,'riddle','Původní hádanka','Text',$2::jsonb,$3::jsonb,now()-interval '1 hour',true,now(),7)",[gameId,JSON.stringify([{label:'Kdo?'}]),JSON.stringify(['Děda'])]);
+    await engine.query("insert into public.santa_game_results(game_id,participant_id,participant_name,attempts,best_correct,solved,answers,solved_at) values($1,$2,'Původní hadač',1,1,true,$3::jsonb,now())",[gameId,personId,JSON.stringify(['DEDA'])]);
+    await engine.query("insert into public.santa_game_attempts(game_id,participant_id,request_id,answers,correct_count) values($1,$2,$3,$4::jsonb,1)",[gameId,personId,requestId,JSON.stringify(['DEDA'])]);
+    snapshot=(await engine.query(query,[gameId])).rows[0].data;
+  }});
+  try{
+    assert.deepEqual((await db.engine.query(query,[gameId])).rows[0].data,snapshot);
+    const repeat=await db.rpc('santa_games_attempt',{input_year:2026,input_game:gameId,input_participant:personId,input_answers:['DEDA'],input_request:requestId,input_revision:7});
+    assert.equal(repeat.error,null);assert.equal(repeat.data.duplicate,true);
+    const done=await db.rpc('santa_games_attempt',{input_year:2026,input_game:gameId,input_participant:personId,input_answers:['deda'],input_request:randomUUID(),input_revision:7});
+    assert.equal(done.error,null);assert.equal(done.data.alreadySolved,true);
+  }finally{await db.engine.close();}
+});

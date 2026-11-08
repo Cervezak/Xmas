@@ -6,7 +6,7 @@ import { createHandler } from '../api/santa.js';
 import { createGamesHandler } from '../api/games.js';
 import { normalizeName } from '../shared/questionnaire.js';
 
-export async function createDatabase({ legacySetup, history = true, beforeGameExtension, beforeRiddles } = {}) {
+export async function createDatabase({ legacySetup, history = true, beforeGameExtension, beforeRiddles, beforeRiddleVariants } = {}) {
   const engine = new PGlite();
   await engine.exec('create role anon; create role authenticated; create role service_role bypassrls; grant usage on schema public to anon, authenticated, service_role;');
   await engine.exec(await readFile(new URL('../supabase/migrations/202610260001_santa.sql', import.meta.url), 'utf8'));
@@ -18,6 +18,8 @@ export async function createDatabase({ legacySetup, history = true, beforeGameEx
   await engine.exec(await readFile(new URL('../supabase/migrations/202611040001_game_guests_and_reveals.sql', import.meta.url), 'utf8'));
   if(beforeRiddles)await beforeRiddles(engine);
   await engine.exec(await readFile(new URL('../supabase/migrations/202611080001_riddles.sql', import.meta.url), 'utf8'));
+  if(beforeRiddleVariants)await beforeRiddleVariants(engine);
+  await engine.exec(await readFile(new URL('../supabase/migrations/202611080002_riddle_variants.sql', import.meta.url), 'utf8'));
   if (history) {
     const people = [];
     for (const name of familyNames) {

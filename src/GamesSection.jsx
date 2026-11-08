@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useRef,useState } from 'react';
-import { gamesApi,formatGameDate } from '../shared/games.js';
+import { gamesApi,formatGameDate,formatRiddleSolution } from '../shared/games.js';
 import GuestQuestionnaire from './GuestQuestionnaire.jsx';
 
 export function GamePlay({game,personId,onAttempt,submitting}) {
@@ -32,7 +32,7 @@ export function GamePlay({game,personId,onAttempt,submitting}) {
         {game.kind==='riddle'?<>
           <label className="sr-only" htmlFor={'riddle-'+game.id+'-'+index}>{question.label}</label>
           <input id={'riddle-'+game.id+'-'+index} type="text" required maxLength={160} autoComplete="off" value={shown[index]} onChange={(event)=>setAnswers(answers.map((old,place)=>place===index?event.target.value:old))} placeholder="Napiš svou odpověď…" />
-          {game.solutions?.[index] && <p className="game-correct">✓ Správná odpověď: {game.solutions[index]}</p>}
+          {game.solutions?.[index] && <p className="game-correct">✓ Správná odpověď: {formatRiddleSolution(game.solutions[index])}</p>}
         </>:question.options.map((option,position)=><label key={position} className={'game-choice '+(shown[index]===position?'selected ':'')+(game.solutions?.[index]===position?'correct':'')}>
           <input type="radio" name={'answer-'+game.id+'-'+index} required checked={shown[index]===position} onChange={()=>setAnswers(answers.map((old,place)=>place===index?position:old))} />
           <span>{option}{game.solutions?.[index]===position && <strong className="game-correct"> ✓ Správně</strong>}</span>

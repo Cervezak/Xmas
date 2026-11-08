@@ -1,5 +1,5 @@
 import { useEffect,useRef,useState } from 'react';
-import { formatGameDate,pragueInput,pragueToUtc,GAME_STATES } from '../shared/games.js';
+import { formatGameDate,pragueInput,pragueToUtc,GAME_STATES,formatRiddleSolution } from '../shared/games.js';
 import {STATEMENTS,TIMINGS} from '../shared/questionnaire.js';
 
 const questionsFor = (count) => Array.from({length:count},(_,index)=>({label:count===1?'Kdo nebo co je na obrázku?':'Kdo je osoba '+(index+1)+'?',options:['','']}));
@@ -71,7 +71,7 @@ export default function AdminGames({year,active,request}) {
   const save=async(published)=>{
     try{
       const startsAt=draft.startsAt && pragueInput(draft.startsAt)===draft.startsLocal?draft.startsAt:pragueToUtc(draft.startsLocal);
-      const game={...draft,published,startsAt};
+      const game={...draft,published,startsAt,solutions:draft.kind==='riddle'?draft.solutions.map((answer)=>Array.isArray(answer)?answer.map((variant)=>variant.trim()).filter(Boolean):answer):draft.solutions};
       if(await operate('admin-save',{game},true))setNote(published?'Hra je uložená a zveřejní se podle termínu.':'Koncept je uložený. Na veřejném webu se nezobrazí.');
     }catch(failure){setError(failure.message);}
   };
@@ -104,7 +104,7 @@ export default function AdminGames({year,active,request}) {
           <label htmlFor="game-kind">Typ hry</label><select id="game-kind" value={draft.kind} onChange={(event)=>{
             const kind=event.target.value;
             const switchFormat=(kind==='riddle')!==(draft.kind==='riddle');
-            const blank=draft.kind==='riddle'?draft.solutions.every((answer)=>!answer):draft.questions.every((question)=>question.options.every((option)=>!option));
+            const blank=draft.kind==='riddle'?draft.solutions.every((answer)=>!formatRiddleSolution(answer,'').trim()):draft.questions.every((question)=>question.options.every((option)=>!option));
             if(switchFormat && !blank && !window.confirm('Změna typu vymaže dosavadní otázky a odpovědi. Pokračovat?'))return;
             change({kind,...(switchFormat || blank?{questions:kind==='riddle'?[{label:'Jaká je tvoje odpověď?'}]:questionsFor(kind==='image'?1:3),solutions:kind==='riddle'?['']:kind==='image'?[-1]:[-1,-1,-1]}:{})});
           }}><option value="story">Historka – přiřazení osob</option><option value="image">Rozpoznání obrázku</option><option value="riddle">Hádanka – otevřená odpověď</option></select>
@@ -119,8 +119,8 @@ export default function AdminGames({year,active,request}) {
           {draft.questions.map((question,index)=><section className="game-question-editor" key={index}>
             <label htmlFor={'game-question-'+index}>Otázka {index+1}</label><input id={'game-question-'+index} maxLength={160} required value={question.label} onChange={(event)=>setQuestion(index,{...question,label:event.target.value})} />
             {draft.kind==='riddle'?<>
-              <label htmlFor={'game-solution-'+index}>Správná odpověď {index+1}</label><input id={'game-solution-'+index} required maxLength={160} value={draft.solutions[index]} onChange={(event)=>change({solutions:draft.solutions.map((old,position)=>position===index?event.target.value:old)})} />
-              <p className="muted">Velká a malá písmena, diakritika a mezery navíc nerozhodují. Například „Děda“ i „deda“ platí stejně. Ostatní znění se musí shodovat.</p>
+              <label htmlFor={'game-solution-'+index}>Uznávané odpovědi {index+1} – každá na nový řádek</label><textarea id={'game-solution-'+index} rows={4} required maxLength={3219} value={formatRiddleSolution(draft.solutions[index],'\n')} placeholder={'zvon\nzvonek\nzvoneček'} onChange={(event)=>change({solutions:draft.solutions.map((old,position)=>position===index?event.target.value.split('\n'):old)})} />
+              <p className="muted">Stačí shoda s jednou variantou. Nejvýše 20 variant, každá do 160 znaků. Velká a malá písmena, diakritika a mezery navíc nerozhodují. Například „zvoneček“ i „ZVONECEK“ platí stejně.</p>
             </>:<><p className="muted">Napiš možnosti a označ jednu správnou odpověď.</p>
             {question.options.map((option,optionIndex)=><div className="game-option-editor" key={optionIndex}>
               <label className="game-answer-radio"><input type="radio" name={'correct-'+index} required checked={draft.solutions[index]===optionIndex} onChange={()=>change({solutions:draft.solutions.map((old,position)=>position===index?optionIndex:old)})} /><span className="sr-only">Správná odpověď, otázka {index+1}, možnost {optionIndex+1}</span></label>
@@ -140,7 +140,7 @@ export default function AdminGames({year,active,request}) {
         {!locked && <div className="games-buttons"><button className="primary" disabled={busy}>{started?'Potvrdit změny zadání':'Potvrdit a naplánovat'}</button><button type="button" className="secondary" disabled={busy || started} onClick={()=>save(false)}>Uložit koncept</button></div>}
       </form>
       {preview && <section className="game-preview"><p className="eyebrow">NÁHLED PRO ORGANIZÁTORA</p><h3>{draft.title || 'Název hry'}</h3><p className="game-story">{draft.body}</p>{draft.kind==='image' && draft.imageData && <img className="game-image" src={draft.imageData} alt="Náhled hádanky" />}
-        {draft.questions.map((question,index)=><div key={index}><strong>{question.label}</strong>{draft.kind==='riddle'?<p>Správná odpověď: {draft.solutions[index] || 'Nevyplněná odpověď'} ✓</p>:<ul>{question.options.map((option,position)=><li key={position}>{option || 'Nevyplněná možnost'}{draft.solutions[index]===position?' ✓':''}</li>)}</ul>}</div>)}
+        {draft.questions.map((question,index)=><div key={index}><strong>{question.label}</strong>{draft.kind==='riddle'?<p>Správná odpověď: {formatRiddleSolution(draft.solutions[index]) || 'Nevyplněná odpověď'} ✓</p>:<ul>{question.options.map((option,position)=><li key={position}>{option || 'Nevyplněná možnost'}{draft.solutions[index]===position?' ✓':''}</li>)}</ul>}</div>)}
         {(draft.revealText || draft.kind==='image' && draft.revealImageData) && <div className="game-point"><h4>Pointa po vyřešení</h4><p className="game-story">{draft.revealText}</p>{draft.kind==='image' && draft.revealImageData && <img className="game-image" src={draft.revealImageData} alt="Náhled originální fotografie po vyřešení" />}</div>}
       </section>}
       {draft.revision>0 && !draft.cancelledAt && <section className="game-remove">

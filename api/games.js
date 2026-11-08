@@ -49,11 +49,20 @@ export function validateGame(game) {
   const revealText = text(game.revealText ?? '',4000,true);
   if (!Array.isArray(game.questions) || game.questions.length < 1 || game.questions.length > 3 ||
     !Array.isArray(game.solutions) || game.solutions.length !== game.questions.length) invalid();
+  const solutions=game.solutions.map((answer)=>{
+    if(game.kind!=='riddle')return answer;
+    const variants=Array.isArray(answer)?answer:[answer];
+    if(variants.length<1 || variants.length>20)invalid();
+    const cleaned=variants.map((variant)=>{
+      const solution=text(variant,160);
+      if (/[\p{Cc}\p{Cf}]/u.test(solution) || !solution.normalize('NFD').replace(/[\u0300-\u036f\s]/gu,'')) invalid();
+      return solution;
+    });
+    return Array.isArray(answer)?cleaned:cleaned[0];
+  });
   const questions = game.questions.map((question,index) => {
     if (game.kind === 'riddle') {
       if (!question || typeof question !== 'object' || Object.keys(question).some((key)=>key !== 'label')) invalid();
-      const solution=text(game.solutions[index],160);
-      if (/[\p{Cc}\p{Cf}]/u.test(solution) || !solution.normalize('NFD').replace(/[\u0300-\u036f\s]/gu,'')) invalid();
       return {label:text(question.label,160)};
     }
     if (!question || !Array.isArray(question.options) || question.options.length < 2 || question.options.length > 10) invalid();
@@ -67,7 +76,7 @@ export function validateGame(game) {
 
   return { id:game.id,revision:game.revision,kind:game.kind,title,body,questions,
     revealText,imageData,revealImageData,startsAt:new Date(game.startsAt).toISOString(),published:game.published,
-    solutions:game.kind==='riddle'?game.solutions.map((answer)=>text(answer,160)):game.solutions };
+    solutions };
 }
 async function readBody(request) {
   if (!request.headers['content-type']?.startsWith('application/json')) throw new ApiError(415,'Požadavek musí být JSON.');
@@ -118,6 +127,7 @@ export function createGamesHandler({ environment = process.env, database } = {})
         const schema=await rpc('santa_games_admin',{input_year:input.year,input_id:null});
         if(!Array.isArray(schema.guests))throw new ApiError(503,'Nejdřív spusť aktualizaci databáze 202611040001_game_guests_and_reveals.sql.');
         if(input.action==='admin-save' && input.game?.kind==='riddle' && !schema.supportsRiddles)throw new ApiError(503,'Nejdřív spusť aktualizaci databáze 202611080001_riddles.sql.');
+        if(input.action==='admin-save' && input.game?.kind==='riddle' && Array.isArray(input.game.solutions) && input.game.solutions.some(Array.isArray) && !schema.supportsRiddleVariants)throw new ApiError(503,'Nejdřív spusť aktualizaci databáze 202611080002_riddle_variants.sql.');
         if(input.action==='admin-list' && !id){send(200,schema);return;}
         if (input.action === 'admin-get' && !id) throw new ApiError(400,'Vyber hru.');
         if (input.action === 'admin-save') id = await rpc('santa_games_save',{input_year:input.year,input_game:validateGame(input.game)});
