@@ -1,5 +1,13 @@
 begin;
 
+do $$
+begin
+  if to_regprocedure('public.santa_game_answer_key(text)') is null then
+    raise exception 'First apply 202611080001_riddles.sql';
+  end if;
+end;
+$$;
+
 -- Keep legacy string solutions; new riddles may store 1-20 accepted variants per question.
 -- No game content, locks, revisions or recorded answers are rewritten.
 
