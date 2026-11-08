@@ -103,20 +103,25 @@ export default function AdminGames({year,active,request}) {
         <fieldset className="game-editor-fields" disabled={busy || locked}>
           <label htmlFor="game-kind">Typ hry</label><select id="game-kind" value={draft.kind} onChange={(event)=>{
             const kind=event.target.value;
-            const blank=draft.questions.every((question)=>question.options.every((option)=>!option));
-            change({kind,...(blank?{questions:questionsFor(kind==='image'?1:3),solutions:kind==='image'?[-1]:[-1,-1,-1]}:{})});
-          }}><option value="story">Historka – přiřazení osob</option><option value="image">Rozpoznání obrázku</option></select>
+            const switchFormat=(kind==='riddle')!==(draft.kind==='riddle');
+            const blank=draft.kind==='riddle'?draft.solutions.every((answer)=>!answer):draft.questions.every((question)=>question.options.every((option)=>!option));
+            if(switchFormat && !blank && !window.confirm('Změna typu vymaže dosavadní otázky a odpovědi. Pokračovat?'))return;
+            change({kind,...(switchFormat || blank?{questions:kind==='riddle'?[{label:'Jaká je tvoje odpověď?'}]:questionsFor(kind==='image'?1:3),solutions:kind==='riddle'?['']:kind==='image'?[-1]:[-1,-1,-1]}:{})});
+          }}><option value="story">Historka – přiřazení osob</option><option value="image">Rozpoznání obrázku</option><option value="riddle">Hádanka – otevřená odpověď</option></select>
           <label htmlFor="game-title">Název hry</label><input id="game-title" maxLength={120} required value={draft.title} onChange={(event)=>change({title:event.target.value})} />
           <label htmlFor="game-start">Zobrazit od (český čas)</label><input id="game-start" type="datetime-local" required disabled={busy || locked || started} value={draft.startsLocal} onChange={(event)=>change({startsLocal:event.target.value})} />
           <small>Pro nové zveřejnění vyber budoucí čas. Pro rychlé spuštění stačí čas za několik minut.</small>
-          <label htmlFor="game-body">{draft.kind==='story'?'Celý text historky':'Zadání k obrázku'}</label><textarea id="game-body" rows={8} maxLength={16000} required value={draft.body} onChange={(event)=>change({body:event.target.value})} />
+          <label htmlFor="game-body">{draft.kind==='story'?'Celý text historky':draft.kind==='riddle'?'Text hádanky':'Zadání k obrázku'}</label><textarea id="game-body" rows={8} maxLength={16000} required value={draft.body} onChange={(event)=>change({body:event.target.value})} />
           {draft.kind==='image' && <><label htmlFor="game-image">Nahrát obrázek nebo připravené obrysy</label><input id="game-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event)=>uploadImage(event.target.files?.[0],'imageData')} /><small>JPG, PNG nebo WebP do 10 MB. Web obrázek zmenší před uložením.</small>{draft.imageData && <img className="game-image" src={draft.imageData} alt="Nahraný obrázek hry" />}</>}
           <label htmlFor="game-question-count">Počet otázek / osob</label><select id="game-question-count" value={draft.questions.length} onChange={(event)=>{
-            const count=Number(event.target.value);change({questions:Array.from({length:count},(_,index)=>draft.questions[index] || questionsFor(3)[index]),solutions:Array.from({length:count},(_,index)=>draft.solutions[index]??-1)});
+            const count=Number(event.target.value);change({questions:Array.from({length:count},(_,index)=>draft.questions[index] || (draft.kind==='riddle'?{label:'Odpověď '+(index+1)}:questionsFor(3)[index])),solutions:Array.from({length:count},(_,index)=>draft.solutions[index]??(draft.kind==='riddle'?'':-1))});
           }}>{[1,2,3].map((count)=><option key={count} value={count}>{count}</option>)}</select>
           {draft.questions.map((question,index)=><section className="game-question-editor" key={index}>
             <label htmlFor={'game-question-'+index}>Otázka {index+1}</label><input id={'game-question-'+index} maxLength={160} required value={question.label} onChange={(event)=>setQuestion(index,{...question,label:event.target.value})} />
-            <p className="muted">Napiš možnosti a označ jednu správnou odpověď.</p>
+            {draft.kind==='riddle'?<>
+              <label htmlFor={'game-solution-'+index}>Správná odpověď {index+1}</label><input id={'game-solution-'+index} required maxLength={160} value={draft.solutions[index]} onChange={(event)=>change({solutions:draft.solutions.map((old,position)=>position===index?event.target.value:old)})} />
+              <p className="muted">Velká a malá písmena, diakritika a mezery navíc nerozhodují. Například „Děda“ i „deda“ platí stejně. Ostatní znění se musí shodovat.</p>
+            </>:<><p className="muted">Napiš možnosti a označ jednu správnou odpověď.</p>
             {question.options.map((option,optionIndex)=><div className="game-option-editor" key={optionIndex}>
               <label className="game-answer-radio"><input type="radio" name={'correct-'+index} required checked={draft.solutions[index]===optionIndex} onChange={()=>change({solutions:draft.solutions.map((old,position)=>position===index?optionIndex:old)})} /><span className="sr-only">Správná odpověď, otázka {index+1}, možnost {optionIndex+1}</span></label>
               <input aria-label={'Otázka '+(index+1)+', možnost '+(optionIndex+1)} value={option} required maxLength={80} onChange={(event)=>setQuestion(index,{...question,options:question.options.map((old,position)=>position===optionIndex?event.target.value:old)})} />
@@ -125,7 +130,7 @@ export default function AdminGames({year,active,request}) {
                   solutions:draft.solutions.map((old,position)=>position===index?(selected===optionIndex?-1:selected>optionIndex?selected-1:selected):old)});
               }}>Odebrat<span className="sr-only"> možnost {optionIndex+1} u otázky {index+1}</span></button>
             </div>)}
-            <button type="button" className="secondary" disabled={question.options.length>=10} onClick={()=>setQuestion(index,{...question,options:[...question.options,'']})}>Přidat možnost</button>
+            <button type="button" className="secondary" disabled={question.options.length>=10} onClick={()=>setQuestion(index,{...question,options:[...question.options,'']})}>Přidat možnost</button></>}
           </section>)}
           <label htmlFor="game-reveal">Pointa po vyřešení nebo skončení hry (nepovinné)</label><textarea id="game-reveal" rows={4} maxLength={4000} value={draft.revealText} onChange={(event)=>change({revealText:event.target.value})} />
           {draft.kind==='image' && <><label htmlFor="game-reveal-image">Originální fotka do pointy (nepovinné)</label><input id="game-reveal-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event)=>uploadImage(event.target.files?.[0],'revealImageData')} /><small>Zobrazí se až po správném vyřešení nebo v archivu. JPG, PNG nebo WebP do 10 MB.</small>
@@ -135,7 +140,7 @@ export default function AdminGames({year,active,request}) {
         {!locked && <div className="games-buttons"><button className="primary" disabled={busy}>{started?'Potvrdit změny zadání':'Potvrdit a naplánovat'}</button><button type="button" className="secondary" disabled={busy || started} onClick={()=>save(false)}>Uložit koncept</button></div>}
       </form>
       {preview && <section className="game-preview"><p className="eyebrow">NÁHLED PRO ORGANIZÁTORA</p><h3>{draft.title || 'Název hry'}</h3><p className="game-story">{draft.body}</p>{draft.kind==='image' && draft.imageData && <img className="game-image" src={draft.imageData} alt="Náhled hádanky" />}
-        {draft.questions.map((question,index)=><div key={index}><strong>{question.label}</strong><ul>{question.options.map((option,position)=><li key={position}>{option || 'Nevyplněná možnost'}{draft.solutions[index]===position?' ✓':''}</li>)}</ul></div>)}
+        {draft.questions.map((question,index)=><div key={index}><strong>{question.label}</strong>{draft.kind==='riddle'?<p>Správná odpověď: {draft.solutions[index] || 'Nevyplněná odpověď'} ✓</p>:<ul>{question.options.map((option,position)=><li key={position}>{option || 'Nevyplněná možnost'}{draft.solutions[index]===position?' ✓':''}</li>)}</ul>}</div>)}
         {(draft.revealText || draft.kind==='image' && draft.revealImageData) && <div className="game-point"><h4>Pointa po vyřešení</h4><p className="game-story">{draft.revealText}</p>{draft.kind==='image' && draft.revealImageData && <img className="game-image" src={draft.revealImageData} alt="Náhled originální fotografie po vyřešení" />}</div>}
       </section>}
       {draft.revision>0 && !draft.cancelledAt && <section className="game-remove">

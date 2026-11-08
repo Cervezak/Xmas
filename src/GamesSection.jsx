@@ -3,11 +3,12 @@ import { gamesApi,formatGameDate } from '../shared/games.js';
 import GuestQuestionnaire from './GuestQuestionnaire.jsx';
 
 export function GamePlay({game,personId,onAttempt,submitting}) {
-  const [answers,setAnswers]=useState(()=>game.progress?.answers ?? game.questions.map(()=>-1));
+  const emptyAnswer=game.kind==='riddle'?'':-1;
+  const [answers,setAnswers]=useState(()=>game.progress?.answers ?? game.questions.map(()=>emptyAnswer));
   const request=useRef(null);
   const ended=game.status==='archived';
   const solved=Boolean(game.progress?.solved);
-  const shown=solved || ended?(game.progress?.answers ?? game.questions.map(()=>-1)):answers;
+  const shown=solved || ended?(game.progress?.answers ?? game.questions.map(()=>emptyAnswer)):answers;
   const readOnly=ended || solved || !personId;
   const submit=async(event)=>{
     event.preventDefault();
@@ -23,16 +24,21 @@ export function GamePlay({game,personId,onAttempt,submitting}) {
     {!personId && <p className="notice">Pro hraní nebo zobrazení svého výsledku nejdřív vyber jméno nahoře.</p>}
     {ended && <p className="notice">Hra skončila. Můžeš si prohlédnout řešení a výsledky, další pokusy už nejsou možné.</p>}
     {solved && <p className="notice" role="status">Správně vyřešeno! Tvoje odpovědi jsou uložené a uzamčené.</p>}
-    {ended && game.progress && !solved && <p className="muted">Označené možnosti jsou z tvého posledního pokusu. Správné řešení je označené zvlášť.</p>}
+    {ended && game.progress && !solved && <p className="muted">Zobrazené odpovědi jsou z tvého posledního pokusu. Správné řešení je označené zvlášť.</p>}
+    {game.kind==='riddle' && <p className="muted">Odpověď napiš do pole. Velká a malá písmena ani diakritika nerozhodují.</p>}
     <form onSubmit={submit}>
       {game.questions.map((question,index)=><fieldset className="game-choices" disabled={readOnly || submitting} key={index}>
         <legend>{question.label}</legend>
-        {question.options.map((option,position)=><label key={position} className={'game-choice '+(shown[index]===position?'selected ':'')+(game.solutions?.[index]===position?'correct':'')}>
+        {game.kind==='riddle'?<>
+          <label className="sr-only" htmlFor={'riddle-'+game.id+'-'+index}>{question.label}</label>
+          <input id={'riddle-'+game.id+'-'+index} type="text" required maxLength={160} autoComplete="off" value={shown[index]} onChange={(event)=>setAnswers(answers.map((old,place)=>place===index?event.target.value:old))} placeholder="Napiš svou odpověď…" />
+          {game.solutions?.[index] && <p className="game-correct">✓ Správná odpověď: {game.solutions[index]}</p>}
+        </>:question.options.map((option,position)=><label key={position} className={'game-choice '+(shown[index]===position?'selected ':'')+(game.solutions?.[index]===position?'correct':'')}>
           <input type="radio" name={'answer-'+game.id+'-'+index} required checked={shown[index]===position} onChange={()=>setAnswers(answers.map((old,place)=>place===index?position:old))} />
           <span>{option}{game.solutions?.[index]===position && <strong className="game-correct"> ✓ Správně</strong>}</span>
         </label>)}
       </fieldset>)}
-      {!ended && !solved && personId && <button className="primary" disabled={submitting || answers.some((answer)=>answer<0)}>{submitting?'Ověřuji…':'Ověřit odpovědi'}</button>}
+      {!ended && !solved && personId && <button className="primary" disabled={submitting || answers.some((answer)=>typeof answer==='string'?!answer.trim():answer<0)}>{submitting?'Ověřuji…':'Ověřit odpovědi'}</button>}
     </form>
     {(game.revealText || game.revealImageData) && <div className="game-point"><h4>Jak to bylo doopravdy</h4>{game.revealText && <p className="game-story">{game.revealText}</p>}{game.revealImageData && <img className="game-image" src={game.revealImageData} alt="Originální fotografie po odhalení" />}</div>}
     <details className="game-results"><summary>Kdo tuto hru řešil</summary>

@@ -1,8 +1,11 @@
 # Ověření ročníků a verzí losování
 
-Ověřeno 4. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
+Ověřeno 8. 11. 2026 lokálně. Žádná živá databáze, její stávající losování ani hosting nebyly změněny.
 
-- Plná sada: **54 prošlo, 0 selhalo**.
+- Plná sada: **61 prošlo, 0 selhalo**.
+- Hádanka: šest nových serverových/databázových testů a jeden kompletní test editoru a hraní přes React DOM. Ověřeny české velké/malé znaky, diakritika, složený i rozložený Unicode, běžné a nezalomitelné mezery, odmítnutí prázdných či příliš dlouhých odpovědí a shoda více otázek. Překlepy, interpunkce a pořadí slov zůstávají významné.
+- Ověřeno skryté řešení před úspěchem, počítání pokusů jen v administraci, idempotence, uzamčení zadání, zachování napsané odpovědi po obnovení, archiv bez dalších pokusů a zachování původních her/skóre/revizí při nové migraci. Ukládání nové hádanky se odmítne, dokud není nová SQL aktualizace přítomná.
+- Hádanka nevyžaduje žádné nové závislosti, klíče ani veřejné databázové oprávnění. Produkční databáze ani deployment se lokálním ověřením nemění.
 - Ověřeno odmítnutí ukládání novým kódem, pokud ještě není aplikovaná nová SQL struktura, aby se neztratila fotografie pointy.
 - Soukromý import dvou dohodnutých jmen byl navíc ověřen samostatně v dočasné databázi: opakované spuštění nevytvoří duplicity a nepřidá žádné přihlášky do losování.
 - Ověřeno přidání samostatných herních hostů bez změny účastníků, přiřazení, revize losování a SMS; zabránění jejich podstrčení do losu; dobrovolný dotazník bez telefonu, jeho neměnnost a opakování stejného požadavku.
@@ -15,7 +18,7 @@ Ověřeno 4. 11. 2026 lokálně. Žádná živá databáze, její stávající l
 - Rozšířený interakční test administrace ověřuje jediný viditelný panel, přepínání záložek kliknutím i klávesnicí, trvale dostupný výběr ročníku, zachování rozepsaných pravidel mezi záložkami, jejich oddělení při změně roku a skrytí tajných SMS i výsledků při odchodu. Ověřuje také přelosování, uzamčení a načtení aktuálních SMS při přechodu z archivu.
 - Nový interakční test celé administrace přes React DOM a jsdom zopakoval chybu duplicitního seznamu účastníků před opravou a po opravě prošel. Kontroluje jeden seznam, jeden box pravidel a správný počet SMS při opakovaném načítání, ukládání a rušení pravidel, chybové odpovědi i přepínání roků. Test používá smyšlená data a nahrazené API; nepřipojuje se k produkci.
 - Produkční build React/Vite: úspěšný.
-- Testy spouštějí všech pět SQL migrací v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
+- Testy spouštějí všech šest SQL migrací v PostgreSQL enginu PGlite. HTTP požadavky používají stejnou API funkci jako produkce, s testovací databází a testovacími přihlašovacími údaji.
 - Ověřeno ukládání pravidel podle ročníku, prázdná pravidla nového roku, původní oslovení a uložený titul dárce v SMS, víceřádková pravidla před rozloučením a jejich vynechání při prázdném textu.
 - Ověřena oprávnění nové RPC, validace, zastaralé souběžné úpravy, zachování dvojic/verzí/zámku při změně pravidel i po uzamčení a stejné SMS po opětovném načtení. Šestý test vykreslení kontroluje bezpečné zobrazení pravidel bez interpretace HTML a nepřítomnost editoru u ruční historie.
 - Ověřeno zachování původních formulářů a přiřazení jako 2026/verze 1, včetně původního času a funkčního opakování již uloženého požadavku.

@@ -43,13 +43,19 @@ export function validateGame(game) {
     return value.trim();
   };
   if (!game || typeof game !== 'object' || !uuid(game.id) || !Number.isSafeInteger(game.revision) || game.revision < 0 ||
-    !['story','image'].includes(game.kind) || typeof game.published !== 'boolean') invalid();
+    !['story','image','riddle'].includes(game.kind) || typeof game.published !== 'boolean') invalid();
   const title = text(game.title,120);
   const body = text(game.body,16000);
   const revealText = text(game.revealText ?? '',4000,true);
   if (!Array.isArray(game.questions) || game.questions.length < 1 || game.questions.length > 3 ||
     !Array.isArray(game.solutions) || game.solutions.length !== game.questions.length) invalid();
   const questions = game.questions.map((question,index) => {
+    if (game.kind === 'riddle') {
+      if (!question || typeof question !== 'object' || Object.keys(question).some((key)=>key !== 'label')) invalid();
+      const solution=text(game.solutions[index],160);
+      if (/[\p{Cc}\p{Cf}]/u.test(solution) || !solution.normalize('NFD').replace(/[\u0300-\u036f\s]/gu,'')) invalid();
+      return {label:text(question.label,160)};
+    }
     if (!question || !Array.isArray(question.options) || question.options.length < 2 || question.options.length > 10) invalid();
     const options = question.options.map((option) => text(option,80));
     if (new Set(options).size !== options.length || !Number.isInteger(game.solutions[index]) || game.solutions[index] < 0 || game.solutions[index] >= options.length) invalid();
@@ -59,8 +65,9 @@ export function validateGame(game) {
   const imageData = game.kind === 'image' ? validateImage(game.imageData,true) : null;
   const revealImageData = game.kind === 'image' ? validateImage(game.revealImageData,false) : null;
 
-  return { id:game.id,revision:game.revision,kind:game.kind,title,body,questions,solutions:game.solutions,
-    revealText,imageData,revealImageData,startsAt:new Date(game.startsAt).toISOString(),published:game.published };
+  return { id:game.id,revision:game.revision,kind:game.kind,title,body,questions,
+    revealText,imageData,revealImageData,startsAt:new Date(game.startsAt).toISOString(),published:game.published,
+    solutions:game.kind==='riddle'?game.solutions.map((answer)=>text(answer,160)):game.solutions };
 }
 async function readBody(request) {
   if (!request.headers['content-type']?.startsWith('application/json')) throw new ApiError(415,'Požadavek musí být JSON.');
@@ -110,6 +117,7 @@ export function createGamesHandler({ environment = process.env, database } = {})
         let removed;
         const schema=await rpc('santa_games_admin',{input_year:input.year,input_id:null});
         if(!Array.isArray(schema.guests))throw new ApiError(503,'Nejdřív spusť aktualizaci databáze 202611040001_game_guests_and_reveals.sql.');
+        if(input.action==='admin-save' && input.game?.kind==='riddle' && !schema.supportsRiddles)throw new ApiError(503,'Nejdřív spusť aktualizaci databáze 202611080001_riddles.sql.');
         if(input.action==='admin-list' && !id){send(200,schema);return;}
         if (input.action === 'admin-get' && !id) throw new ApiError(400,'Vyber hru.');
         if (input.action === 'admin-save') id = await rpc('santa_games_save',{input_year:input.year,input_game:validateGame(input.game)});
@@ -137,7 +145,7 @@ export function createGamesHandler({ environment = process.env, database } = {})
       }
       if (input.action === 'attempt') {
         if (!uuid(input.gameId) || !uuid(input.participantId) || !uuid(input.requestId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !Array.isArray(input.answers) ||
-          input.answers.length < 1 || input.answers.length > 3 || input.answers.some((answer)=>!Number.isInteger(answer) || answer < 0 || answer > 9)) throw new ApiError(400,messages.SANTA_GAME_INVALID);
+          input.answers.length < 1 || input.answers.length > 3 || input.answers.some((answer)=>typeof answer==='string' ? !answer.trim() || answer.length>160 || /[\p{Cc}\p{Cf}]/u.test(answer) : !Number.isInteger(answer) || answer < 0 || answer > 9)) throw new ApiError(400,messages.SANTA_GAME_INVALID);
         outcome = await rpc('santa_games_attempt',{input_year:input.year,input_game:input.gameId,input_participant:input.participantId,input_answers:input.answers,input_request:input.requestId,input_revision:input.expectedRevision});
       }
       const result = await rpc('santa_games_public',{input_year:input.year,input_game:input.gameId ?? null,input_participant:input.participantId ?? null});

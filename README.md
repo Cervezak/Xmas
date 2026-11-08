@@ -2,6 +2,16 @@
 
 Česká responzivní React/Vite SPA s ročníky, verzemi losování a neveřejnou administrací. Veřejný formulář vždy patří jedinému aktivnímu roku. Tajná přiřazení jsou dostupná pouze správci, SMS se posílají ručně. Výsledky rodinných her jsou součástí veřejné herní části.
 
+## Hádanka s otevřenou odpovědí
+
+Pokud už máš rozšíření pro herní hosty a originální fotografii, spusť v Supabase → SQL Editor pouze nový soubor `supabase/migrations/202611080001_riddles.sql`. Starší migrace ani soukromé importy znovu nespouštěj. Pak odešli kód přes GitHub Desktop a počkej na úspěšný Vercel deployment. Nové klíče nejsou potřeba. Aktualizace zachová existující hry, výsledky, ročníky, losování i SMS.
+
+V administraci vyber **Easter eggy → Nová hra → Hádanka – otevřená odpověď**. Napiš text hádanky, otázku a její správnou odpověď (nejvýše 160 znaků). Výchozí je jedna otázka, případně lze mít až tři samostatné odpovědi. Pro každou se zadává jedno správné znění. Koncept, náhled, pointa i plánování fungují stejně jako u ostatních her.
+
+Hráč odpověď napíše do pole. Server ignoruje velká/malá písmena, diakritiku i mezery navíc: například **Děda Mirek**, **DEDA MIREK** a **deda   mirek** se shodují. Překlepy, jiné pořadí slov, přezdívky nebo doplněná interpunkce se automaticky neuznávají. Uložení prázdné odpovědi není dovoleno.
+
+Řešení není předem v nabídce ani ve veřejných datech. Zobrazí se až po úplném vyřešení pro vybrané jméno nebo v archivu. Chybný pokus dovolí opravu; správné odpovědi se uloží v původně napsaném znění a uzamknou i po obnovení stránky. Počty pokusů a nejlepší počet správných odpovědí zůstávají jen v administraci. Starší hry se výběrem možností fungují beze změny.
+
 ## Aktualizace existující instalace z října 2026
 
 **Původní migraci znovu nespouštěj.** Všechny existující formuláře zůstanou v roce 2026. Dosavadní los se zachová jako verze 1, včetně původního času a všech přiřazení. Migrace sama neprovádí přelosování.
@@ -9,7 +19,7 @@
 1. Před změnou si stáhni export současných účastníků a přiřazení ze Supabase.
 2. V Supabase SQL Editoru spusť celý soubor `supabase/migrations/202611010001_seasons_and_versions.sql`. Je to jednorázová transakční migrace.
 3. Potom spusť soukromý soubor `supabase/private/2025-history.sql`, případně stažený `2025-historie-soukrome.sql`. Obsahuje deset ručně dodaných dvojic z roku 2025. Je mimo Git díky `.gitignore`, aby se historické výsledky nezveřejnily se zdrojovým kódem.
-4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Spusť také `supabase/migrations/202611020001_easter_games.sql`. Spusť také `supabase/migrations/202611040001_game_guests_and_reveals.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
+4. Spusť také nový soubor `supabase/migrations/202611010002_sms_rules.sql`. Spusť také `supabase/migrations/202611020001_easter_games.sql`. Spusť také `supabase/migrations/202611040001_game_guests_and_reveals.sql`. Spusť také `supabase/migrations/202611080001_riddles.sql`. Potom nahraj nový kód na produkční větev a nech Vercel dokončit nový deployment. SQL a nový kód patří k sobě; během přechodu může stará verze API odeslání odmítat.
 5. V `/admin` vyber rok 2026. U každé přihlášky zvol skutečnou osobu z historie a klikni na **Potvrdit totožnost**. Při účasti nového člověka zvol **Nová osoba**. Shoda jména je jen nápověda, nic se automaticky nehádá.
 6. Dosavadní los uvidíš jako **2026, verze 1**. Jestli potřebuješ nový výsledek a **SMS ještě neodešly**, vytvoř další verzi. Výsledek před rozesláním definitivně uzamkni.
 
@@ -33,7 +43,7 @@ Pravidla lze upravit i po definitivním uzamčení losu: aktualizují se pouze p
 
 Pokud už máš ročníky i pravidla SMS, v Supabase SQL Editoru spusť jednou celý soubor `supabase/migrations/202611020001_easter_games.sql`. Původní migrace ani historii 2025 znovu nespouštěj. Potom odešli nový kód přes GitHub Desktop a počkej na úspěšný deployment. Žádné nové klíče nebo služby nejsou potřeba. Hry nepřepisují účastníky, přiřazení, SMS ani zámek losování.
 
-V administraci vyber ročník → **Easter eggy** → **Nová hra**. Zvol **Historku** nebo **Rozpoznání obrázku**, napiš zadání a nastav 1–3 otázky. Každá otázka má 2–10 možností a jednu označenou správnou odpověď. Můžeš doplnit pointu, která se ukáže až po úplném vyřešení nebo v archivu.
+V administraci vyber ročník → **Easter eggy** → **Nová hra**. Zvol **Historku**, **Rozpoznání obrázku** nebo **Hádanku – otevřená odpověď**, napiš zadání a nastav 1–3 otázky. Historka a obrázek mají u každé otázky 2–10 možností a jednu označenou správnou odpověď. Hádanka má volné textové pole a správné znění zadává organizátor. Můžeš doplnit pointu, která se ukáže až po úplném vyřešení nebo v archivu.
 
 - **Uložit koncept** uchová vyplněnou hru bez zveřejnění. Koncept musí mít platné zadání a řešení.
 - **Náhled hry** ukáže obsah i správné řešení pouze organizátorovi.
@@ -105,9 +115,10 @@ V Supabase SQL Editoru spusť v tomto pořadí:
 3. `supabase/migrations/202611010002_sms_rules.sql`
 4. `supabase/migrations/202611020001_easter_games.sql`
 5. `supabase/migrations/202611040001_game_guests_and_reveals.sql`
-6. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
+6. `supabase/migrations/202611080001_riddles.sql`
+7. Soukromý import historie 2025, pokud jde o tuto konkrétní rodinnou akci.
 
-Prvních pět migrací je obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
+Prvních šest migrací je obecná struktura, nikoli veřejný archiv rodinných výsledků. Soukromý import je třeba uschovat samostatně, protože se nepřenáší přes Git. Bez něj bude připravený záznam historie 2025 prázdný a nové losování 2026 se zablokuje.
 
 ~~~sh
 npm run dev
@@ -214,7 +225,7 @@ npm test
 npm run build
 ~~~
 
-Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všech pět migrací a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
+Testy používají skutečný PostgreSQL engine v paměti přes PGlite, všech šest migrací a HTTP požadavky proti stejné API funkci. Testovací historie je smyšlená; soukromý import 2025 není potřeba pro běžné testy a neukládá se do Git. Podrobný rozsah a omezení ověření jsou v `VALIDATION.md`.
 
 - [Vite na Vercelu](https://vercel.com/docs/frameworks/frontend/vite)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)

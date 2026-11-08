@@ -245,3 +245,50 @@ test('game-only players can be added in admin and complete their optional questi
   assert.deepEqual(after.messages,originalDraw.messages);
   assert.equal(after.participants.length,3);
 });
+
+test('admin creates an open riddle and players can type accent-insensitive answers, reload success and view the archive',async()=>{
+  const request=async(action,data)=>{
+    const response=await app.games(action,data,true);
+    if(response.status!==200)throw new Error(response.body.error);
+    return response.body;
+  };
+  await mount(AdminGames,{year:2026,active:true,request});
+  await until(()=>dom.window.document.querySelector('.game-admin-list'));
+  await click('Nová hra');await input('game-kind','riddle');
+  assert.equal(dom.window.document.querySelector('.game-option-editor'),null);
+  assert.equal(dom.window.document.querySelector('#game-image'),null);
+  await input('game-title','UI hádanka');await input('game-body','Kdo zpívá u stromečku?');
+  await input('game-start',pragueInput(Date.now()+3600000));
+  await input('game-solution-0','Děda Mirek');
+  await click('Uložit koncept');await until(()=>dom.window.document.body.textContent.includes('Koncept je uložený.'));
+  await click('Náhled hry');assert.ok(dom.window.document.querySelector('.game-preview').textContent.includes('Správná odpověď: Děda Mirek'));
+  await click('Potvrdit a naplánovat');await until(()=>dom.window.document.body.textContent.includes('Hra je uložená a zveřejní se podle termínu.'));
+  const listing=(await app.games('admin-list',{year:2026},true)).body;
+  const riddle=listing.games.find((item)=>item.title==='UI hádanka');
+  await app.database.engine.query("update public.santa_games set starts_at=now()-interval '10 seconds' where id=$1",[riddle.id]);
+  const selectName=async()=>{
+    await until(()=>dom.window.document.querySelectorAll('.game-person').length===5);
+    await act(async()=>dom.window.document.querySelector('.game-person').click());
+    await until(()=>dom.window.document.querySelector('.game-play input[type="text"]') && dom.window.document.querySelector('.game-selected'));
+  };
+  await mount(GamesSection,{year:2026});await selectName();
+  const answerId='riddle-'+riddle.id+'-0';
+  const verify=()=>[...dom.window.document.querySelectorAll('button')].find((item)=>item.textContent==='Ověřit odpovědi');
+  assert.equal(verify().disabled,true);assert.ok(!dom.window.document.querySelector('.game-play').textContent.includes('Děda Mirek'));
+  await input(answerId,'   ');assert.equal(verify().disabled,true);
+  await input(answerId,'Santa');await click('Ověřit odpovědi');await until(()=>dom.window.document.body.textContent.includes('Ještě to není ono.'));
+  assert.equal(dom.window.document.querySelector('.game-correct'),null);
+  await input(answerId,'  DEDA   mirek  ');await click('Ověřit odpovědi');await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
+  assert.equal(dom.window.document.querySelector('.game-choices').disabled,true);
+  assert.ok(dom.window.document.querySelector('.game-correct').textContent.includes('Děda Mirek'));
+  await mount(GamesSection,{year:2026});await selectName();
+  await until(()=>dom.window.document.body.textContent.includes('Správně vyřešeno!'));
+  assert.equal(dom.window.document.getElementById(answerId).value,'  DEDA   mirek  ');assert.equal(verify(),undefined);
+  const next=(await app.games('admin-save',{year:2026,game:{id:randomUUID(),revision:0,kind:'riddle',title:'Další UI hádanka',body:'Co padá?',
+    questions:[{label:'Odpověď'}],solutions:['Sníh'],startsAt:new Date(Date.now()+300000).toISOString(),published:true}},true)).body.selectedGame;
+  await app.database.engine.query('update public.santa_games set starts_at=now()-interval \'1 second\' where id=$1',[next.id]);
+  await act(async()=>dom.window.dispatchEvent(new dom.window.Event('focus')));await until(()=>dom.window.document.querySelector('.game-play h3')?.textContent==='Další UI hádanka');
+  await input('game-archive-2026',riddle.id);await until(()=>dom.window.document.querySelector('.game-play h3')?.textContent==='UI hádanka');
+  assert.ok(dom.window.document.querySelector('.game-play').textContent.includes('Hra skončila.'));
+  assert.equal(dom.window.document.querySelector('.game-choices').disabled,true);assert.ok(dom.window.document.querySelector('.game-correct').textContent.includes('Děda Mirek'));
+});
